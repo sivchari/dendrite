@@ -58,7 +58,7 @@ type rawTool struct {
 func (t *Tool) UnmarshalYAML(value *yaml.Node) error {
 	var raw rawTool
 	if err := value.Decode(&raw); err != nil {
-		return err
+		return fmt.Errorf("failed to decode tool entry: %w", err)
 	}
 
 	t.name = raw.Name

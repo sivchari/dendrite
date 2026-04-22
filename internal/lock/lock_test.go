@@ -12,7 +12,7 @@ import (
 func TestReadWrite(t *testing.T) { //nolint:funlen // table-driven test with detailed verification
 	t.Parallel()
 
-	original := &LockFile{
+	original := &File{
 		Tools: []ToolLock{
 			{
 				Name: "cli/cli@v2.87.0",
@@ -47,7 +47,7 @@ func TestReadWrite(t *testing.T) { //nolint:funlen // table-driven test with det
 	}
 
 	// Verify header comment is present.
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // test file path from t.TempDir
 	if err != nil {
 		t.Fatalf("failed to read written file: %v", err)
 	}
@@ -101,10 +101,10 @@ func TestReadNotFound(t *testing.T) {
 	}
 }
 
-func TestLookup(t *testing.T) {
+func TestLookup(t *testing.T) { //nolint:funlen // table-driven test with multiple cases
 	t.Parallel()
 
-	lock := &LockFile{
+	lock := &File{
 		Tools: []ToolLock{
 			{
 				Name: "cli/cli@v2.87.0",
@@ -177,6 +177,7 @@ func TestLookup(t *testing.T) {
 
 func TestPlatformKey(t *testing.T) {
 	t.Parallel()
+
 	tests := []struct {
 		name string
 		p    platform.Platform
@@ -207,7 +208,9 @@ func TestPlatformKey(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			got := PlatformKey(tt.p)
+
 			if got != tt.want {
 				t.Errorf("PlatformKey(%v) = %q, want %q", tt.p, got, tt.want)
 			}

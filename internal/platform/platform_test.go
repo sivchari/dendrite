@@ -148,7 +148,7 @@ func TestResolve(t *testing.T) { //nolint:funlen // table-driven test with many 
 	}
 }
 
-func TestDefaultMapping_knownPlatform(t *testing.T) { //nolint:funlen // table-driven test with many cases
+func TestDefaultMapping_knownPlatform(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -226,6 +226,7 @@ func TestPlatformConstants(t *testing.T) {
 			if tt.platform.OS != tt.wantOS {
 				t.Errorf("OS = %q, want %q", tt.platform.OS, tt.wantOS)
 			}
+
 			if tt.platform.Arch != tt.wantArch {
 				t.Errorf("Arch = %q, want %q", tt.platform.Arch, tt.wantArch)
 			}

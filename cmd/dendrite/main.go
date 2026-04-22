@@ -1,3 +1,4 @@
+// Package main provides the dendrite CLI for managing Nix package generation from GitHub releases.
 package main
 
 import (
@@ -154,6 +155,7 @@ func runLock(args []string) error {
 	}
 
 	platformStrs := strings.Split(*platformsFlag, ",")
+
 	var platforms []platform.Platform
 
 	for _, s := range platformStrs {
@@ -186,9 +188,9 @@ func runLock(args []string) error {
 
 // executeLock performs the lock flow: for each tool and platform, resolve asset URLs,
 // prefetch SHA256 hashes, and write the lock file.
-func executeLock(cfg *config.Config, lockPath string, platforms []platform.Platform) error { //nolint:funlen,gocognit // sequential CLI logic
+func executeLock(cfg *config.Config, lockPath string, platforms []platform.Platform) error { //nolint:funlen // sequential CLI logic
 	// Read existing lock file if it exists.
-	var existing *lock.LockFile
+	var existing *lock.File
 
 	if _, statErr := os.Stat(lockPath); statErr == nil {
 		var readErr error
@@ -199,7 +201,7 @@ func executeLock(cfg *config.Config, lockPath string, platforms []platform.Platf
 		}
 	}
 
-	lf := &lock.LockFile{}
+	lf := &lock.File{}
 
 	for i := range cfg.Tools {
 		name := toolName(&cfg.Tools[i])

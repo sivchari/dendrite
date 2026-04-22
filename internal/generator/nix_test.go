@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -384,7 +385,7 @@ stdenv.mkDerivation rec {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := Generate(tt.input)
+			got, err := Generate(&tt.input)
 
 			if tt.wantErr {
 				if err == nil {
@@ -438,7 +439,7 @@ func TestGenerate_versionStripping(t *testing.T) {
 				},
 			}
 
-			got, err := Generate(input)
+			got, err := Generate(&input)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -452,7 +453,7 @@ func TestGenerate_versionStripping(t *testing.T) {
 	}
 }
 
-func TestGenerate_outputStructure(t *testing.T) { //nolint:funlen // output structure verification requires many assertions
+func TestGenerate_outputStructure(t *testing.T) {
 	t.Parallel()
 
 	input := GenerateInput{
@@ -470,7 +471,7 @@ func TestGenerate_outputStructure(t *testing.T) { //nolint:funlen // output stru
 		},
 	}
 
-	got, err := Generate(input)
+	got, err := Generate(&input)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -592,7 +593,7 @@ func TestGenerateAll(t *testing.T) { //nolint:funlen // table-driven test with m
 			continue
 		}
 
-		content, err := os.ReadFile(path)
+		content, err := os.ReadFile(path) //nolint:gosec // test file path from t.TempDir
 		if err != nil {
 			t.Errorf("failed to read %s: %v", path, err)
 
@@ -641,7 +642,7 @@ func TestGenerateAll_emptyInputs(t *testing.T) {
 	}
 }
 
-func TestGenerateAll_invalidOutDir(t *testing.T) { //nolint:funlen // setup-heavy test
+func TestGenerateAll_invalidOutDir(t *testing.T) {
 	t.Parallel()
 
 	inputs := []GenerateInput{
@@ -675,7 +676,7 @@ func TestGenerateAll_invalidOutDir(t *testing.T) { //nolint:funlen // setup-heav
 	}
 }
 
-func TestGenerateAll_contentMatchesGenerate(t *testing.T) { //nolint:funlen // setup-heavy integration test
+func TestGenerateAll_contentMatchesGenerate(t *testing.T) {
 	t.Parallel()
 
 	outDir := t.TempDir()
@@ -696,7 +697,7 @@ func TestGenerateAll_contentMatchesGenerate(t *testing.T) { //nolint:funlen // s
 	}
 
 	// Generate via both paths.
-	expected, err := Generate(input)
+	expected, err := Generate(&input)
 	if err != nil {
 		t.Fatalf("Generate() unexpected error: %v", err)
 	}
@@ -707,18 +708,18 @@ func TestGenerateAll_contentMatchesGenerate(t *testing.T) { //nolint:funlen // s
 
 	path := filepath.Join(outDir, "cli", "default.nix")
 
-	actual, err := os.ReadFile(path)
+	actual, err := os.ReadFile(path) //nolint:gosec // test file path from t.TempDir
 	if err != nil {
 		t.Fatalf("failed to read generated file: %v", err)
 	}
 
-	if string(actual) != string(expected) {
+	if !bytes.Equal(actual, expected) {
 		t.Errorf("GenerateAll output differs from Generate output\nGenerateAll:\n%s\nGenerate:\n%s",
 			string(actual), string(expected))
 	}
 }
 
-func TestGenerateAll_binsFallbackToRepo(t *testing.T) { //nolint:funlen // setup-heavy integration test
+func TestGenerateAll_binsFallbackToRepo(t *testing.T) {
 	t.Parallel()
 
 	outDir := t.TempDir()

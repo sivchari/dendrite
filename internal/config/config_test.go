@@ -338,7 +338,7 @@ tools:
 	}
 }
 
-func TestParse(t *testing.T) {
+func TestParse(t *testing.T) { //nolint:funlen // comprehensive file-based test
 	t.Parallel()
 
 	t.Run("valid file", func(t *testing.T) {
@@ -354,7 +354,7 @@ tools:
       - gh
 `
 
-		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 			t.Fatal(err)
 		}
 
@@ -389,7 +389,7 @@ tools:
 		dir := t.TempDir()
 		path := filepath.Join(dir, "bad.yaml")
 
-		if err := os.WriteFile(path, []byte(`tools: [[[`), 0o644); err != nil {
+		if err := os.WriteFile(path, []byte(`tools: [[[`), 0o600); err != nil {
 			t.Fatal(err)
 		}
 
@@ -410,7 +410,7 @@ tools:
     asset: foo.tar.gz
 `
 
-		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 			t.Fatal(err)
 		}
 
@@ -463,10 +463,8 @@ func TestNamePattern(t *testing.T) {
 				assertEqual(t, "owner", tt.owner, matches[1])
 				assertEqual(t, "repo", tt.repo, matches[2])
 				assertEqual(t, "version", tt.ver, matches[3])
-			} else {
-				if matches != nil {
-					t.Fatalf("expected %q not to match, but got %v", tt.input, matches)
-				}
+			} else if matches != nil {
+				t.Fatalf("expected %q not to match, but got %v", tt.input, matches)
 			}
 		})
 	}

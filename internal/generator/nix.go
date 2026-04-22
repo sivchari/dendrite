@@ -70,7 +70,7 @@ type templateData struct {
 
 // Generate renders a default.nix file for the given input.
 // The version has its prefix stripped in the output based on VersionPrefix.
-func Generate(input GenerateInput) ([]byte, error) {
+func Generate(input *GenerateInput) ([]byte, error) {
 	version := strings.TrimPrefix(input.Tool.Version, input.Tool.VersionPrefix)
 
 	bins := input.Tool.Bins
@@ -105,13 +105,13 @@ func Generate(input GenerateInput) ([]byte, error) {
 
 // GenerateAll writes a default.nix file for each input into outDir/<repo>/default.nix.
 func GenerateAll(inputs []GenerateInput, outDir string) error {
-	for _, input := range inputs {
-		content, err := Generate(input)
+	for i := range inputs {
+		content, err := Generate(&inputs[i])
 		if err != nil {
 			return err
 		}
 
-		dir := filepath.Join(outDir, input.Tool.Repo)
+		dir := filepath.Join(outDir, inputs[i].Tool.Repo)
 
 		if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec // standard directory permissions for Nix packages
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)

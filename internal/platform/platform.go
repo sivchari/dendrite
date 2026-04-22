@@ -101,6 +101,7 @@ func ResolveWithPrefix(asset, version, prefix string, p Platform) []string {
 
 			if _, dup := seen[r]; !dup {
 				seen[r] = struct{}{}
+
 				results = append(results, r)
 			}
 		}
