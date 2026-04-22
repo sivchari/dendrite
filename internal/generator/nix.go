@@ -119,7 +119,7 @@ func GenerateAll(inputs []GenerateInput, outDir string) error {
 
 		path := filepath.Join(dir, "default.nix")
 
-		if err := os.WriteFile(path, content, 0o644); err != nil {
+		if err := os.WriteFile(path, content, 0o600); err != nil {
 			return fmt.Errorf("failed to write %s: %w", path, err)
 		}
 	}

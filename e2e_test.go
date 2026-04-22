@@ -25,7 +25,7 @@ func writeFile(t *testing.T, path, content string) {
 		t.Fatalf("failed to create directory for %s: %v", path, err)
 	}
 
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("failed to write %s: %v", path, err)
 	}
 }
@@ -314,7 +314,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e t
 			nixPath := filepath.Join(outDir, tt.expectedDir, "default.nix")
 			assertFileExists(t, nixPath)
 
-			content, err := os.ReadFile(nixPath)
+			content, err := os.ReadFile(nixPath) //nolint:gosec // test reads generated file in temp dir
 			if err != nil {
 				t.Fatalf("failed to read %s: %v", nixPath, err)
 			}
@@ -600,7 +600,7 @@ func TestE2E_LockFileHeader(t *testing.T) {
 		t.Fatalf("lock.Write failed: %v", err)
 	}
 
-	content, err := os.ReadFile(lockPath)
+	content, err := os.ReadFile(lockPath) //nolint:gosec // test reads generated file in temp dir
 	if err != nil {
 		t.Fatalf("failed to read lock file: %v", err)
 	}

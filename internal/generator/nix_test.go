@@ -666,7 +666,7 @@ func TestGenerateAll_invalidOutDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	blocker := filepath.Join(tmpDir, "blocker")
 
-	if err := os.WriteFile(blocker, []byte("not a dir"), 0o644); err != nil {
+	if err := os.WriteFile(blocker, []byte("not a dir"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -746,7 +746,7 @@ func TestGenerateAll_binsFallbackToRepo(t *testing.T) {
 	// When bins is empty, the directory and pname should use the repo name.
 	path := filepath.Join(outDir, "terraform", "default.nix")
 
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) //nolint:gosec // test reads generated file in temp dir
 	if err != nil {
 		t.Fatalf("expected file at %s: %v", path, err)
 	}

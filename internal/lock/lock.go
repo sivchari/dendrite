@@ -57,7 +57,7 @@ func Write(path string, lock *File) error {
 
 	content := lockFileHeader + string(data)
 
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil { //nolint:gosec // lock file needs 0o644 for Nix to read it
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		return fmt.Errorf("failed to write lock file %s: %w", path, err)
 	}
 
@@ -83,7 +83,7 @@ func Lookup(lock *File, name, platformKey string) *AssetLock {
 // PrefetchURL runs nix-prefetch-url to compute the SHA256 hash of the given
 // URL. The returned hash is in SRI format: "sha256-<base64>".
 func PrefetchURL(url string) (string, error) {
-	prefetch := exec.Command("nix-prefetch-url", "--type", "sha256", url) //nolint:gosec,noctx // url is from trusted config input; no context available in this utility function
+	prefetch := exec.Command("nix-prefetch-url", "--type", "sha256", url) //nolint:noctx // no context available in this utility function
 	out, err := prefetch.Output()
 
 	if err != nil {
@@ -92,7 +92,7 @@ func PrefetchURL(url string) (string, error) {
 
 	nix32Hash := strings.TrimSpace(string(out))
 
-	convert := exec.Command("nix", "hash", "convert", "--hash-algo", "sha256", "--to", "sri", nix32Hash) //nolint:gosec,noctx // nix32Hash is output from nix-prefetch-url; no context available in this utility function
+	convert := exec.Command("nix", "hash", "convert", "--hash-algo", "sha256", "--to", "sri", nix32Hash) //nolint:noctx // no context available in this utility function
 	sri, err := convert.Output()
 
 	if err != nil {
