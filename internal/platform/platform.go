@@ -52,9 +52,11 @@ var defaultMappings = map[string]Mapping{
 // Mapping that uses the raw OS and Arch values as single-element lists.
 func DefaultMapping(p Platform) Mapping {
 	key := p.OS + "/" + p.Arch
+
 	if m, ok := defaultMappings[key]; ok {
 		return m
 	}
+
 	return Mapping{
 		OSNames:   []string{p.OS},
 		ArchNames: []string{p.Arch},
@@ -78,28 +80,31 @@ func DefaultMapping(p Platform) Mapping {
 //	 "gh_2.87.0_darwin_aarch64.tar.gz",
 //	 "gh_2.87.0_macOS_arm64.tar.gz",
 //	 "gh_2.87.0_macOS_aarch64.tar.gz"]
-func Resolve(asset string, version string, p Platform) []string {
+func Resolve(asset, version string, p Platform) []string {
 	return ResolveWithPrefix(asset, version, "v", p)
 }
 
 // ResolveWithPrefix is like Resolve but strips the given prefix from version.
-func ResolveWithPrefix(asset string, version string, prefix string, p Platform) []string {
+func ResolveWithPrefix(asset, version, prefix string, p Platform) []string {
 	m := DefaultMapping(p)
 
 	ver := strings.TrimPrefix(version, prefix)
 	base := strings.ReplaceAll(asset, "{version}", ver)
 
 	seen := make(map[string]struct{})
-	var results []string
+	results := make([]string, 0, len(m.OSNames)*len(m.ArchNames))
+
 	for _, osName := range m.OSNames {
 		for _, archName := range m.ArchNames {
 			r := strings.ReplaceAll(base, "{os}", osName)
 			r = strings.ReplaceAll(r, "{arch}", archName)
+
 			if _, dup := seen[r]; !dup {
 				seen[r] = struct{}{}
 				results = append(results, r)
 			}
 		}
 	}
+
 	return results
 }

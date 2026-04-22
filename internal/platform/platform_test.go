@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestResolve(t *testing.T) {
+func TestResolve(t *testing.T) { //nolint:funlen // table-driven test with many cases
 	t.Parallel()
 
 	tests := []struct {
@@ -133,10 +133,12 @@ func TestResolve(t *testing.T) {
 			t.Parallel()
 
 			got := Resolve(tt.asset, tt.version, tt.platform)
+
 			if len(got) != len(tt.want) {
 				t.Fatalf("Resolve() returned %d results, want %d\n  got:  %v\n  want: %v",
 					len(got), len(tt.want), got, tt.want)
 			}
+
 			for i := range got {
 				if got[i] != tt.want[i] {
 					t.Errorf("Resolve()[%d] = %q, want %q", i, got[i], tt.want[i])
@@ -146,7 +148,7 @@ func TestResolve(t *testing.T) {
 	}
 }
 
-func TestDefaultMapping_knownPlatform(t *testing.T) {
+func TestDefaultMapping_knownPlatform(t *testing.T) { //nolint:funlen // table-driven test with many cases
 	t.Parallel()
 
 	tests := []struct {
@@ -233,10 +235,12 @@ func TestPlatformConstants(t *testing.T) {
 
 func assertStringSlice(t *testing.T, label string, got, want []string) {
 	t.Helper()
+
 	if len(got) != len(want) {
 		t.Fatalf("%s: length = %d, want %d\n  got:  %v\n  want: %v",
 			label, len(got), len(want), got, want)
 	}
+
 	for i := range got {
 		if got[i] != want[i] {
 			t.Errorf("%s[%d] = %q, want %q", label, i, got[i], want[i])

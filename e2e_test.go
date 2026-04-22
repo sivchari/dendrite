@@ -13,16 +13,18 @@ import (
 )
 
 // toolName reconstructs the "owner/repo@version" identifier from a parsed Tool.
-func toolName(t config.Tool) string {
+func toolName(t *config.Tool) string {
 	return t.Owner + "/" + t.Repo + "@" + t.Version
 }
 
 // writeFile is a test helper that writes content to path, creating parent directories.
 func writeFile(t *testing.T, path, content string) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		t.Fatalf("failed to create directory for %s: %v", path, err)
 	}
+
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("failed to write %s: %v", path, err)
 	}
@@ -46,14 +48,17 @@ func generateFromConfigAndLock(t *testing.T, configPath, lockPath, outDir string
 	}
 
 	var inputs []generator.GenerateInput
-	for _, tool := range cfg.Tools {
-		name := toolName(tool)
+
+	for i := range cfg.Tools {
+		name := toolName(&cfg.Tools[i])
+
 		entry := lock.Lookup(lf, name, pKey)
 		if entry == nil {
 			t.Fatalf("no lock entry found for %s on platform %s", name, pKey)
 		}
+
 		inputs = append(inputs, generator.GenerateInput{
-			Tool: tool,
+			Tool: cfg.Tools[i],
 			Lock: generator.LockEntry{
 				URL:    entry.URL,
 				SHA256: entry.SHA256,
@@ -69,33 +74,37 @@ func generateFromConfigAndLock(t *testing.T, configPath, lockPath, outDir string
 // assertFileExists checks that the file at path exists.
 func assertFileExists(t *testing.T, path string) {
 	t.Helper()
+
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		t.Fatalf("expected file to exist: %s", path)
 	}
 }
 
 // assertContains checks that content contains the given substring.
-func assertContains(t *testing.T, content, substr, context string) {
+func assertContains(t *testing.T, content, substr, ctx string) {
 	t.Helper()
+
 	if !strings.Contains(content, substr) {
-		t.Errorf("%s: expected content to contain %q, but it was not found.\nFull content:\n%s", context, substr, content)
+		t.Errorf("%s: expected content to contain %q, but it was not found.\nFull content:\n%s", ctx, substr, content)
 	}
 }
 
 // assertNotContains checks that content does not contain the given substring.
-func assertNotContains(t *testing.T, content, substr, context string) {
+func assertNotContains(t *testing.T, content, substr, ctx string) {
 	t.Helper()
+
 	if strings.Contains(content, substr) {
-		t.Errorf("%s: expected content NOT to contain %q, but it was found.\nFull content:\n%s", context, substr, content)
+		t.Errorf("%s: expected content NOT to contain %q, but it was found.\nFull content:\n%s", ctx, substr, content)
 	}
 }
 
 // --- Test 1: Full pipeline test ---
 
-func TestE2E_FullPipeline(t *testing.T) {
+func TestE2E_FullPipeline(t *testing.T) { //nolint:funlen // e2e test with comprehensive verification
 	t.Parallel()
 
 	tmpDir := t.TempDir()
+
 	configPath := filepath.Join(tmpDir, "dendrite.yaml")
 	lockPath := filepath.Join(tmpDir, "dendrite.lock.yaml")
 	outDir := filepath.Join(tmpDir, "packages")
@@ -128,8 +137,7 @@ tools:
 	writeFile(t, configPath, configContent)
 	writeFile(t, lockPath, lockContent)
 
-	p := platform.DarwinARM64
-	generateFromConfigAndLock(t, configPath, lockPath, outDir, p)
+	generateFromConfigAndLock(t, configPath, lockPath, outDir, platform.DarwinARM64)
 
 	tests := []struct {
 		name    string
@@ -164,31 +172,31 @@ tools:
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// (a) File exists at correct path
+			// (a) File exists at correct path.
 			assertFileExists(t, tt.nixPath)
 
 			content, err := os.ReadFile(tt.nixPath)
 			if err != nil {
 				t.Fatalf("failed to read %s: %v", tt.nixPath, err)
 			}
+
 			nix := string(content)
 
-			// (b) Contains correct pname, version (no v prefix)
+			// (b) Contains correct pname, version (no v prefix).
 			assertContains(t, nix, `pname = "`+tt.pname+`"`, "pname")
 			assertContains(t, nix, `version = "`+tt.version+`"`, "version")
-			// Ensure no "v" prefix in version value
 			assertNotContains(t, nix, `version = "v`, "version should not have v prefix")
 
-			// (c) Contains correct fetchurl URL and sha256
+			// (c) Contains correct fetchurl URL and sha256.
 			assertContains(t, nix, `url = "`+tt.url+`"`, "url")
 			assertContains(t, nix, `sha256 = "`+tt.sha256+`"`, "sha256")
 
-			// (d) Contains correct bin names in installPhase
+			// (d) Contains correct bin names in installPhase.
 			for _, bin := range tt.bins {
 				assertContains(t, nix, `chmod +x $out/bin/`+bin, "bin in installPhase")
 			}
 
-			// (e) Has valid Nix syntax structure
+			// (e) Has valid Nix syntax structure.
 			assertContains(t, nix, "stdenv,", "nix function arg stdenv")
 			assertContains(t, nix, "fetchurl,", "nix function arg fetchurl")
 			assertContains(t, nix, "stdenv.mkDerivation rec {", "mkDerivation")
@@ -203,7 +211,7 @@ tools:
 
 // --- Test 2: Multiple tools with different configurations ---
 
-func TestE2E_MultipleToolConfigurations(t *testing.T) {
+func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e test with many configuration variants
 	t.Parallel()
 
 	tests := []struct {
@@ -286,6 +294,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) {
 			t.Parallel()
 
 			tmpDir := t.TempDir()
+
 			configPath := filepath.Join(tmpDir, "dendrite.yaml")
 			lockPath := filepath.Join(tmpDir, "dendrite.lock.yaml")
 			outDir := filepath.Join(tmpDir, "packages")
@@ -300,8 +309,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) {
 				"            sha256: \"" + tt.lockSHA256 + "\"\n"
 			writeFile(t, lockPath, lockContent)
 
-			p := platform.DarwinARM64
-			generateFromConfigAndLock(t, configPath, lockPath, outDir, p)
+			generateFromConfigAndLock(t, configPath, lockPath, outDir, platform.DarwinARM64)
 
 			nixPath := filepath.Join(outDir, tt.expectedDir, "default.nix")
 			assertFileExists(t, nixPath)
@@ -310,6 +318,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to read %s: %v", nixPath, err)
 			}
+
 			nix := string(content)
 
 			assertContains(t, nix, `pname = "`+tt.expectedPname+`"`, "pname")
@@ -317,6 +326,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) {
 			assertNotContains(t, nix, `version = "v`, "version should not have v prefix")
 			assertContains(t, nix, `url = "`+tt.lockURL+`"`, "url")
 			assertContains(t, nix, `sha256 = "`+tt.lockSHA256+`"`, "sha256")
+
 			for _, bin := range tt.expectedBins {
 				assertContains(t, nix, `chmod +x $out/bin/`+bin, "bin in installPhase")
 			}
@@ -326,7 +336,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) {
 
 // --- Test 4: Lock file round-trip ---
 
-func TestE2E_LockFileRoundTrip(t *testing.T) {
+func TestE2E_LockFileRoundTrip(t *testing.T) { //nolint:funlen,gocognit // e2e round-trip verification
 	t.Parallel()
 
 	tmpDir := t.TempDir()
@@ -373,21 +383,24 @@ func TestE2E_LockFileRoundTrip(t *testing.T) {
 		t.Fatalf("lock.Read failed: %v", err)
 	}
 
-	// Verify all entries are preserved
+	// Verify all entries are preserved.
 	if len(roundTripped.Tools) != len(original.Tools) {
 		t.Fatalf("expected %d tools, got %d", len(original.Tools), len(roundTripped.Tools))
 	}
 
 	for _, origTool := range original.Tools {
 		found := false
+
 		for _, rtTool := range roundTripped.Tools {
 			if rtTool.Name != origTool.Name {
 				continue
 			}
+
 			found = true
 
 			if len(rtTool.Assets) != len(origTool.Assets) {
 				t.Errorf("tool %s: expected %d assets, got %d", origTool.Name, len(origTool.Assets), len(rtTool.Assets))
+
 				continue
 			}
 
@@ -395,27 +408,33 @@ func TestE2E_LockFileRoundTrip(t *testing.T) {
 				rtAsset, ok := rtTool.Assets[pKey]
 				if !ok {
 					t.Errorf("tool %s: missing platform %s after round-trip", origTool.Name, pKey)
+
 					continue
 				}
+
 				if rtAsset.URL != origAsset.URL {
 					t.Errorf("tool %s platform %s: URL mismatch: got %q, want %q", origTool.Name, pKey, rtAsset.URL, origAsset.URL)
 				}
+
 				if rtAsset.SHA256 != origAsset.SHA256 {
 					t.Errorf("tool %s platform %s: SHA256 mismatch: got %q, want %q", origTool.Name, pKey, rtAsset.SHA256, origAsset.SHA256)
 				}
 			}
+
 			break
 		}
+
 		if !found {
 			t.Errorf("tool %s not found after round-trip", origTool.Name)
 		}
 	}
 
-	// Also verify we can do Lookup on the round-tripped data
+	// Also verify we can do Lookup on the round-tripped data.
 	entry := lock.Lookup(roundTripped, "cli/cli@v2.87.0", "darwin_arm64")
 	if entry == nil {
 		t.Fatal("Lookup returned nil for cli/cli@v2.87.0 on darwin_arm64")
 	}
+
 	if entry.SHA256 != "sha256-abc123=" {
 		t.Errorf("Lookup SHA256 mismatch: got %q, want %q", entry.SHA256, "sha256-abc123=")
 	}
@@ -424,6 +443,7 @@ func TestE2E_LockFileRoundTrip(t *testing.T) {
 	if entry == nil {
 		t.Fatal("Lookup returned nil for cli/cli@v2.87.0 on linux_amd64")
 	}
+
 	if entry.URL != "https://github.com/cli/cli/releases/download/v2.87.0/gh_2.87.0_linux_amd64.tar.gz" {
 		t.Errorf("Lookup URL mismatch: got %q", entry.URL)
 	}
@@ -431,13 +451,14 @@ func TestE2E_LockFileRoundTrip(t *testing.T) {
 
 // --- Test 5: Error cases ---
 
-func TestE2E_ErrorCases(t *testing.T) {
+func TestE2E_ErrorCases(t *testing.T) { //nolint:funlen // e2e error case test
 	t.Parallel()
 
 	t.Run("generate without lock file", func(t *testing.T) {
 		t.Parallel()
 
 		tmpDir := t.TempDir()
+
 		configPath := filepath.Join(tmpDir, "dendrite.yaml")
 		lockPath := filepath.Join(tmpDir, "dendrite.lock.yaml")
 
@@ -454,12 +475,14 @@ func TestE2E_ErrorCases(t *testing.T) {
 		if err != nil {
 			t.Fatalf("config.Parse failed: %v", err)
 		}
+
 		_ = cfg
 
 		_, err = lock.Read(lockPath)
 		if err == nil {
 			t.Fatal("expected error when reading non-existent lock file, got nil")
 		}
+
 		if !strings.Contains(err.Error(), "failed to read lock file") {
 			t.Errorf("expected error message to contain 'failed to read lock file', got: %v", err)
 		}
@@ -469,10 +492,11 @@ func TestE2E_ErrorCases(t *testing.T) {
 		t.Parallel()
 
 		tmpDir := t.TempDir()
+
 		configPath := filepath.Join(tmpDir, "dendrite.yaml")
 		lockPath := filepath.Join(tmpDir, "dendrite.lock.yaml")
 
-		// Config has two tools
+		// Config has two tools.
 		configContent := `tools:
   - name: cli/cli@v2.87.0
     asset: gh_{version}_{os}_{arch}.tar.gz
@@ -483,7 +507,7 @@ func TestE2E_ErrorCases(t *testing.T) {
     bins:
       - rg
 `
-		// Lock file only has one tool (missing ripgrep)
+		// Lock file only has one tool (missing ripgrep).
 		lockContent := `# Auto-generated by dendrite. Do not edit.
 tools:
     - name: cli/cli@v2.87.0
@@ -500,22 +524,21 @@ tools:
 			t.Fatalf("config.Parse failed: %v", err)
 		}
 
-		p := platform.DarwinARM64
-		pKey := lock.PlatformKey(p)
+		pKey := lock.PlatformKey(platform.DarwinARM64)
 
 		lf, err := lock.Read(lockPath)
 		if err != nil {
 			t.Fatalf("lock.Read failed: %v", err)
 		}
 
-		// Verify the first tool is found
+		// Verify the first tool is found.
 		entry := lock.Lookup(lf, "cli/cli@v2.87.0", pKey)
 		if entry == nil {
 			t.Fatal("expected lock entry for cli/cli@v2.87.0 to exist")
 		}
 
-		// Verify the second tool is NOT found
-		missingEntry := lock.Lookup(lf, toolName(cfg.Tools[1]), pKey)
+		// Verify the second tool is NOT found.
+		missingEntry := lock.Lookup(lf, toolName(&cfg.Tools[1]), pKey)
 		if missingEntry != nil {
 			t.Fatal("expected lock entry for BurntSushi/ripgrep@14.1.0 to be nil, but got a value")
 		}
@@ -542,7 +565,7 @@ tools:
 			t.Fatalf("lock.Read failed: %v", err)
 		}
 
-		// Tool exists but platform does not
+		// Tool exists but platform does not.
 		entry := lock.Lookup(lf, "cli/cli@v2.87.0", "linux_amd64")
 		if entry != nil {
 			t.Fatal("expected nil for non-existent platform, got a value")
@@ -552,7 +575,7 @@ tools:
 
 // --- Test: Verify lock file header is preserved ---
 
-func TestE2E_LockFileHeader(t *testing.T) {
+func TestE2E_LockFileHeader(t *testing.T) { //nolint:funlen // e2e header verification test
 	t.Parallel()
 
 	tmpDir := t.TempDir()
@@ -582,6 +605,6 @@ func TestE2E_LockFileHeader(t *testing.T) {
 	}
 
 	if !strings.HasPrefix(string(content), "# Auto-generated by dendrite. Do not edit.") {
-		t.Errorf("lock file should start with header comment, got:\n%s", string(content)[:100])
+		t.Errorf("lock file should start with header comment, got:\n%s", string(content)[:100]) //nolint:gocritic // slicing for display is intentional
 	}
 }

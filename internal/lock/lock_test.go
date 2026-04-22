@@ -9,8 +9,9 @@ import (
 	"github.com/sivchari/dendrite/internal/platform"
 )
 
-func TestReadWrite(t *testing.T) {
+func TestReadWrite(t *testing.T) { //nolint:funlen // table-driven test with detailed verification
 	t.Parallel()
+
 	original := &LockFile{
 		Tools: []ToolLock{
 			{
@@ -50,7 +51,9 @@ func TestReadWrite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read written file: %v", err)
 	}
+
 	content := string(data)
+
 	if got := content[:len(lockFileHeader)]; got != lockFileHeader {
 		t.Errorf("header mismatch\ngot:  %q\nwant: %q", got, lockFileHeader)
 	}
@@ -60,22 +63,28 @@ func TestReadWrite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
+
 	if len(got.Tools) != len(original.Tools) {
 		t.Fatalf("tools count mismatch: got %d, want %d", len(got.Tools), len(original.Tools))
 	}
+
 	for i, tool := range got.Tools {
 		if tool.Name != original.Tools[i].Name {
 			t.Errorf("tools[%d].Name = %q, want %q", i, tool.Name, original.Tools[i].Name)
 		}
+
 		for key, wantAsset := range original.Tools[i].Assets {
 			gotAsset, ok := tool.Assets[key]
 			if !ok {
 				t.Errorf("tools[%d].Assets[%q] not found", i, key)
+
 				continue
 			}
+
 			if gotAsset.URL != wantAsset.URL {
 				t.Errorf("tools[%d].Assets[%q].URL = %q, want %q", i, key, gotAsset.URL, wantAsset.URL)
 			}
+
 			if gotAsset.SHA256 != wantAsset.SHA256 {
 				t.Errorf("tools[%d].Assets[%q].SHA256 = %q, want %q", i, key, gotAsset.SHA256, wantAsset.SHA256)
 			}
@@ -85,6 +94,7 @@ func TestReadWrite(t *testing.T) {
 
 func TestReadNotFound(t *testing.T) {
 	t.Parallel()
+
 	_, err := Read(filepath.Join(t.TempDir(), "nonexistent.yaml"))
 	if err == nil {
 		t.Fatal("Read should return an error for nonexistent file")
@@ -93,6 +103,7 @@ func TestReadNotFound(t *testing.T) {
 
 func TestLookup(t *testing.T) {
 	t.Parallel()
+
 	lock := &LockFile{
 		Tools: []ToolLock{
 			{
@@ -142,16 +153,21 @@ func TestLookup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			got := Lookup(lock, tt.toolName, tt.platformKey)
+
 			if tt.wantNil {
 				if got != nil {
 					t.Errorf("Lookup(%q, %q) = %+v, want nil", tt.toolName, tt.platformKey, got)
 				}
+
 				return
 			}
+
 			if got == nil {
 				t.Fatalf("Lookup(%q, %q) = nil, want non-nil", tt.toolName, tt.platformKey)
 			}
+
 			if got.SHA256 != tt.wantSHA256 {
 				t.Errorf("SHA256 = %q, want %q", got.SHA256, tt.wantSHA256)
 			}

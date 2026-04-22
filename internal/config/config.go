@@ -60,23 +60,27 @@ func (t *Tool) UnmarshalYAML(value *yaml.Node) error {
 	if err := value.Decode(&raw); err != nil {
 		return err
 	}
+
 	t.name = raw.Name
 	t.Asset = raw.Asset
 	t.URL = raw.URL
 	t.Bins = raw.Bins
+
 	if raw.VersionPrefix != nil {
 		t.VersionPrefix = *raw.VersionPrefix
 		t.versionPrefixSet = true
 	}
+
 	return nil
 }
 
 // Parse reads the YAML file at the given path and returns a validated Config.
 func Parse(path string) (*Config, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path is from user-provided flag input
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file %s: %w", path, err)
 	}
+
 	return ParseBytes(data)
 }
 
@@ -86,9 +90,11 @@ func ParseBytes(data []byte) (*Config, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
+
 	if err := validate(&cfg); err != nil {
 		return nil, err
 	}
+
 	return &cfg, nil
 }
 
@@ -99,11 +105,13 @@ func validate(cfg *Config) error {
 	}
 
 	var errs []error
+
 	for i := range cfg.Tools {
 		if err := validateTool(&cfg.Tools[i], i); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	return errors.Join(errs...)
 }
 
@@ -111,24 +119,15 @@ func validate(cfg *Config) error {
 func validateTool(t *Tool, index int) error {
 	var errs []error
 
-	if t.name == "" {
-		errs = append(errs, fmt.Errorf("tools[%d]: name is required", index))
-	} else {
-		matches := namePattern.FindStringSubmatch(t.name)
-		if matches == nil {
-			errs = append(errs, fmt.Errorf("tools[%d]: name %q must match owner/repo@version pattern", index, t.name))
-		} else {
-			t.Owner = matches[1]
-			t.Repo = matches[2]
-			t.Version = matches[3]
-		}
-	}
+	errs = appendNameErrors(errs, t, index)
 
 	hasAsset := strings.TrimSpace(t.Asset) != ""
 	hasURL := strings.TrimSpace(t.URL) != ""
+
 	if !hasAsset && !hasURL {
 		errs = append(errs, fmt.Errorf("tools[%d]: asset or url is required", index))
 	}
+
 	if hasAsset && hasURL {
 		errs = append(errs, fmt.Errorf("tools[%d]: asset and url are mutually exclusive", index))
 	}
@@ -144,4 +143,22 @@ func validateTool(t *Tool, index int) error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// appendNameErrors validates the tool name and parses owner/repo/version.
+func appendNameErrors(errs []error, t *Tool, index int) []error {
+	if t.name == "" {
+		return append(errs, fmt.Errorf("tools[%d]: name is required", index))
+	}
+
+	matches := namePattern.FindStringSubmatch(t.name)
+	if matches == nil {
+		return append(errs, fmt.Errorf("tools[%d]: name %q must match owner/repo@version pattern", index, t.name))
+	}
+
+	t.Owner = matches[1]
+	t.Repo = matches[2]
+	t.Version = matches[3]
+
+	return errs
 }

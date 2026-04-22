@@ -80,6 +80,7 @@ func Generate(input GenerateInput) ([]byte, error) {
 
 	needsUnzip := strings.HasSuffix(input.Lock.URL, ".zip")
 	extractCmd := "tar -xzf $src -C $out/bin"
+
 	if needsUnzip {
 		extractCmd = "unzip -o $src -d $out/bin"
 	}
@@ -98,6 +99,7 @@ func Generate(input GenerateInput) ([]byte, error) {
 	if err := nixTemplate.Execute(&buf, data); err != nil {
 		return nil, fmt.Errorf("failed to execute nix template for %s: %w", data.Pname, err)
 	}
+
 	return buf.Bytes(), nil
 }
 
@@ -110,14 +112,17 @@ func GenerateAll(inputs []GenerateInput, outDir string) error {
 		}
 
 		dir := filepath.Join(outDir, input.Tool.Repo)
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+
+		if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec // standard directory permissions for Nix packages
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
 
 		path := filepath.Join(dir, "default.nix")
+
 		if err := os.WriteFile(path, content, 0o644); err != nil {
 			return fmt.Errorf("failed to write %s: %w", path, err)
 		}
 	}
+
 	return nil
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/sivchari/dendrite/internal/config"
 )
 
-func TestGenerate(t *testing.T) {
+func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many cases
 	t.Parallel()
 
 	tests := []struct {
@@ -385,15 +385,19 @@ stdenv.mkDerivation rec {
 			t.Parallel()
 
 			got, err := Generate(tt.input)
+
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
 				}
+
 				return
 			}
+
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if string(got) != tt.want {
 				t.Errorf("Generate() mismatch\ngot:\n%s\nwant:\n%s", string(got), tt.want)
 			}
@@ -440,6 +444,7 @@ func TestGenerate_versionStripping(t *testing.T) {
 			}
 
 			wantLine := `  version = "` + tt.wantVersion + `";`
+
 			if !strings.Contains(string(got), wantLine) {
 				t.Errorf("output does not contain %q\ngot:\n%s", wantLine, string(got))
 			}
@@ -447,7 +452,7 @@ func TestGenerate_versionStripping(t *testing.T) {
 	}
 }
 
-func TestGenerate_outputStructure(t *testing.T) {
+func TestGenerate_outputStructure(t *testing.T) { //nolint:funlen // output structure verification requires many assertions
 	t.Parallel()
 
 	input := GenerateInput{
@@ -491,9 +496,11 @@ func TestGenerate_outputStructure(t *testing.T) {
 	if !strings.Contains(output, "mkdir -p $out/bin") {
 		t.Error("output does not contain mkdir -p $out/bin")
 	}
+
 	if !strings.Contains(output, "tar -xzf $src -C $out/bin") {
 		t.Error("output does not contain tar command")
 	}
+
 	if !strings.Contains(output, "chmod +x $out/bin/gh") {
 		t.Error("output does not contain chmod command for binary")
 	}
@@ -504,7 +511,7 @@ func TestGenerate_outputStructure(t *testing.T) {
 	}
 }
 
-func TestGenerateAll(t *testing.T) {
+func TestGenerateAll(t *testing.T) { //nolint:funlen // table-driven test with many cases
 	t.Parallel()
 
 	outDir := t.TempDir()
@@ -571,24 +578,30 @@ func TestGenerateAll(t *testing.T) {
 
 	for _, wf := range wantFiles {
 		path := filepath.Join(outDir, wf.repo, "default.nix")
+
 		info, err := os.Stat(path)
 		if err != nil {
 			t.Errorf("expected file %s to exist: %v", path, err)
+
 			continue
 		}
+
 		if info.IsDir() {
 			t.Errorf("expected %s to be a file, not a directory", path)
+
 			continue
 		}
 
 		content, err := os.ReadFile(path)
 		if err != nil {
 			t.Errorf("failed to read %s: %v", path, err)
+
 			continue
 		}
 
 		// Verify pname is the repo name.
 		wantPname := `pname = "` + wf.repo + `";`
+
 		if !strings.Contains(string(content), wantPname) {
 			t.Errorf("file %s does not contain %q\ncontent:\n%s", path, wantPname, string(content))
 		}
@@ -596,6 +609,7 @@ func TestGenerateAll(t *testing.T) {
 		// Verify chmod references each binary.
 		for _, bin := range wf.bins {
 			wantChmod := "chmod +x $out/bin/" + bin
+
 			if !strings.Contains(string(content), wantChmod) {
 				t.Errorf("file %s does not contain %q", path, wantChmod)
 			}
@@ -621,12 +635,13 @@ func TestGenerateAll_emptyInputs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read outDir: %v", err)
 	}
+
 	if len(entries) != 0 {
 		t.Errorf("expected empty output directory, got %d entries", len(entries))
 	}
 }
 
-func TestGenerateAll_invalidOutDir(t *testing.T) {
+func TestGenerateAll_invalidOutDir(t *testing.T) { //nolint:funlen // setup-heavy test
 	t.Parallel()
 
 	inputs := []GenerateInput{
@@ -649,6 +664,7 @@ func TestGenerateAll_invalidOutDir(t *testing.T) {
 	// Use a path that cannot be created (nested under a file, not a directory).
 	tmpDir := t.TempDir()
 	blocker := filepath.Join(tmpDir, "blocker")
+
 	if err := os.WriteFile(blocker, []byte("not a dir"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -659,7 +675,7 @@ func TestGenerateAll_invalidOutDir(t *testing.T) {
 	}
 }
 
-func TestGenerateAll_contentMatchesGenerate(t *testing.T) {
+func TestGenerateAll_contentMatchesGenerate(t *testing.T) { //nolint:funlen // setup-heavy integration test
 	t.Parallel()
 
 	outDir := t.TempDir()
@@ -690,6 +706,7 @@ func TestGenerateAll_contentMatchesGenerate(t *testing.T) {
 	}
 
 	path := filepath.Join(outDir, "cli", "default.nix")
+
 	actual, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed to read generated file: %v", err)
@@ -701,7 +718,7 @@ func TestGenerateAll_contentMatchesGenerate(t *testing.T) {
 	}
 }
 
-func TestGenerateAll_binsFallbackToRepo(t *testing.T) {
+func TestGenerateAll_binsFallbackToRepo(t *testing.T) { //nolint:funlen // setup-heavy integration test
 	t.Parallel()
 
 	outDir := t.TempDir()
@@ -727,6 +744,7 @@ func TestGenerateAll_binsFallbackToRepo(t *testing.T) {
 
 	// When bins is empty, the directory and pname should use the repo name.
 	path := filepath.Join(outDir, "terraform", "default.nix")
+
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("expected file at %s: %v", path, err)
@@ -735,6 +753,7 @@ func TestGenerateAll_binsFallbackToRepo(t *testing.T) {
 	if !strings.Contains(string(content), `pname = "terraform"`) {
 		t.Errorf("pname should be terraform, got:\n%s", string(content))
 	}
+
 	if !strings.Contains(string(content), "chmod +x $out/bin/terraform") {
 		t.Errorf("chmod should reference terraform, got:\n%s", string(content))
 	}

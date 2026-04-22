@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestParseBytes(t *testing.T) {
+func TestParseBytes(t *testing.T) { //nolint:funlen // table-driven test with many cases
 	t.Parallel()
 
 	tests := []struct {
@@ -312,21 +312,25 @@ tools:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			cfg, err := ParseBytes([]byte(tt.input))
 
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
 				}
+
 				if tt.errSubstr != "" && !containsSubstring(err.Error(), tt.errSubstr) {
 					t.Errorf("error %q does not contain %q", err.Error(), tt.errSubstr)
 				}
+
 				return
 			}
 
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
+
 			if tt.check != nil {
 				tt.check(t, cfg)
 			}
@@ -339,6 +343,7 @@ func TestParse(t *testing.T) {
 
 	t.Run("valid file", func(t *testing.T) {
 		t.Parallel()
+
 		dir := t.TempDir()
 		path := filepath.Join(dir, "dendrite.yaml")
 		content := `
@@ -348,6 +353,7 @@ tools:
     bins:
       - gh
 `
+
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -356,18 +362,22 @@ tools:
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
+
 		if len(cfg.Tools) != 1 {
 			t.Fatalf("expected 1 tool, got %d", len(cfg.Tools))
 		}
+
 		assertEqual(t, "Owner", "cli", cfg.Tools[0].Owner)
 	})
 
 	t.Run("file not found", func(t *testing.T) {
 		t.Parallel()
+
 		_, err := Parse("/nonexistent/path/dendrite.yaml")
 		if err == nil {
 			t.Fatal("expected error for nonexistent file")
 		}
+
 		if !containsSubstring(err.Error(), "failed to read config file") {
 			t.Errorf("error %q does not mention file read failure", err.Error())
 		}
@@ -375,8 +385,10 @@ tools:
 
 	t.Run("invalid YAML in file", func(t *testing.T) {
 		t.Parallel()
+
 		dir := t.TempDir()
 		path := filepath.Join(dir, "bad.yaml")
+
 		if err := os.WriteFile(path, []byte(`tools: [[[`), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -389,6 +401,7 @@ tools:
 
 	t.Run("file with validation errors", func(t *testing.T) {
 		t.Parallel()
+
 		dir := t.TempDir()
 		path := filepath.Join(dir, "invalid.yaml")
 		content := `
@@ -396,6 +409,7 @@ tools:
   - name: badformat
     asset: foo.tar.gz
 `
+
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -404,6 +418,7 @@ tools:
 		if err == nil {
 			t.Fatal("expected validation error")
 		}
+
 		if !containsSubstring(err.Error(), "must match owner/repo@version pattern") {
 			t.Errorf("error %q does not mention pattern mismatch", err.Error())
 		}
@@ -437,11 +452,14 @@ func TestNamePattern(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			t.Parallel()
+
 			matches := namePattern.FindStringSubmatch(tt.input)
+
 			if tt.valid {
 				if matches == nil {
 					t.Fatalf("expected %q to match, but it did not", tt.input)
 				}
+
 				assertEqual(t, "owner", tt.owner, matches[1])
 				assertEqual(t, "repo", tt.repo, matches[2])
 				assertEqual(t, "version", tt.ver, matches[3])
@@ -457,6 +475,7 @@ func TestNamePattern(t *testing.T) {
 // assertEqual is a test helper for comparing strings.
 func assertEqual(t *testing.T, field, want, got string) {
 	t.Helper()
+
 	if want != got {
 		t.Errorf("%s: want %q, got %q", field, want, got)
 	}
@@ -465,10 +484,13 @@ func assertEqual(t *testing.T, field, want, got string) {
 // assertSliceEqual is a test helper for comparing string slices.
 func assertSliceEqual(t *testing.T, field string, want, got []string) {
 	t.Helper()
+
 	if len(want) != len(got) {
 		t.Errorf("%s: want %v (len %d), got %v (len %d)", field, want, len(want), got, len(got))
+
 		return
 	}
+
 	for i := range want {
 		if want[i] != got[i] {
 			t.Errorf("%s[%d]: want %q, got %q", field, i, want[i], got[i])
@@ -487,5 +509,6 @@ func contains(s, substr string) bool {
 			return true
 		}
 	}
+
 	return false
 }

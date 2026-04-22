@@ -8,8 +8,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/sivchari/dendrite/internal/platform"
 	"gopkg.in/yaml.v3"
+
+	"github.com/sivchari/dendrite/internal/platform"
 )
 
 // lockFileHeader is prepended to every generated lock file.
@@ -34,14 +35,16 @@ type AssetLock struct {
 
 // Read reads and parses a lock file from disk.
 func Read(path string) (*LockFile, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path is from user-provided flag input
 	if err != nil {
 		return nil, fmt.Errorf("failed to read lock file %s: %w", path, err)
 	}
+
 	var lf LockFile
 	if err := yaml.Unmarshal(data, &lf); err != nil {
 		return nil, fmt.Errorf("failed to parse lock file %s: %w", path, err)
 	}
+
 	return &lf, nil
 }
 
@@ -51,42 +54,51 @@ func Write(path string, lock *LockFile) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal lock file: %w", err)
 	}
+
 	content := lockFileHeader + string(data)
+
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("failed to write lock file %s: %w", path, err)
 	}
+
 	return nil
 }
 
 // Lookup finds the AssetLock for a given tool name and platform key.
 // Returns nil if no matching entry is found.
-func Lookup(lock *LockFile, name string, platformKey string) *AssetLock {
+func Lookup(lock *LockFile, name, platformKey string) *AssetLock {
 	for i := range lock.Tools {
 		if lock.Tools[i].Name == name {
 			if asset, ok := lock.Tools[i].Assets[platformKey]; ok {
 				return &asset
 			}
+
 			return nil
 		}
 	}
+
 	return nil
 }
 
 // PrefetchURL runs nix-prefetch-url to compute the SHA256 hash of the given
 // URL. The returned hash is in SRI format: "sha256-<base64>".
 func PrefetchURL(url string) (string, error) {
-	prefetch := exec.Command("nix-prefetch-url", "--type", "sha256", url)
+	prefetch := exec.Command("nix-prefetch-url", "--type", "sha256", url) //nolint:gosec // url is from trusted config input
 	out, err := prefetch.Output()
+
 	if err != nil {
 		return "", fmt.Errorf("nix-prefetch-url failed for %s: %w", url, err)
 	}
+
 	nix32Hash := strings.TrimSpace(string(out))
 
-	convert := exec.Command("nix", "hash", "convert", "--hash-algo", "sha256", "--to", "sri", nix32Hash)
+	convert := exec.Command("nix", "hash", "convert", "--hash-algo", "sha256", "--to", "sri", nix32Hash) //nolint:gosec // nix32Hash is output from nix-prefetch-url
 	sri, err := convert.Output()
+
 	if err != nil {
 		return "", fmt.Errorf("nix hash convert failed for %q: %w", nix32Hash, err)
 	}
+
 	return strings.TrimSpace(string(sri)), nil
 }
 
