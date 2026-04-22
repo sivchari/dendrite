@@ -92,7 +92,7 @@ func PrefetchURL(url string) (string, error) {
 
 	nix32Hash := strings.TrimSpace(string(out))
 
-	convert := exec.Command("nix", "hash", "convert", "--hash-algo", "sha256", "--to", "sri", nix32Hash) //nolint:noctx // no context available in this utility function
+	convert := exec.Command("nix", "hash", "convert", "--hash-algo", "sha256", "--to", "sri", nix32Hash) //nolint:gosec,noctx // nix32Hash is output from nix-prefetch-url; no context available
 	sri, err := convert.Output()
 
 	if err != nil {
