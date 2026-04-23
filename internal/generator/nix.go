@@ -85,8 +85,20 @@ const (
 	formatRaw
 )
 
-// detectFormat determines the asset format from the URL.
-func detectFormat(url string) assetFormat {
+// detectFormat determines the asset format. If formatOverride is set, it takes
+// precedence over URL extension detection.
+func detectFormat(url, formatOverride string) assetFormat {
+	if formatOverride != "" {
+		switch formatOverride {
+		case "zip":
+			return formatZip
+		case "raw":
+			return formatRaw
+		default:
+			return formatTar
+		}
+	}
+
 	switch {
 	case strings.HasSuffix(url, ".zip"):
 		return formatZip
@@ -100,12 +112,21 @@ func detectFormat(url string) assetFormat {
 	}
 }
 
-// tarCommand returns the appropriate tar command based on the URL extension.
-func tarCommand(url string) string {
+// tarCommand returns the appropriate tar command based on the format override or URL extension.
+func tarCommand(url, formatOverride string) string {
+	key := formatOverride
+	if key == "" {
+		key = url
+	}
+
 	switch {
-	case strings.HasSuffix(url, ".tar.bz2"):
+	case key == "tar":
+		return "tar -xf $src -C $out/bin"
+	case key == "tar.gz":
+		return "tar -xzf $src -C $out/bin"
+	case key == "tar.bz2" || strings.HasSuffix(key, ".tar.bz2"):
 		return "tar -xjf $src -C $out/bin"
-	case strings.HasSuffix(url, ".tar.xz"):
+	case key == "tar.xz" || strings.HasSuffix(key, ".tar.xz"):
 		return "tar -xJf $src -C $out/bin"
 	default:
 		return "tar -xzf $src -C $out/bin"
@@ -122,14 +143,14 @@ func Generate(input *GenerateInput) ([]byte, error) {
 		bins = []string{input.Tool.Repo}
 	}
 
-	format := detectFormat(input.Lock.URL)
+	format := detectFormat(input.Lock.URL, input.Tool.Format)
 	needsUnzip := format == formatZip
 
 	var extractCmd string
 
 	switch format {
 	case formatTar:
-		extractCmd = tarCommand(input.Lock.URL)
+		extractCmd = tarCommand(input.Lock.URL, input.Tool.Format)
 	case formatZip:
 		extractCmd = "unzip -o $src -d $out/bin"
 	case formatRaw:

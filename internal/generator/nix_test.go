@@ -498,6 +498,48 @@ stdenv.mkDerivation rec {
 }
 `,
 		},
+		{
+			name: "format override plain tar",
+			input: GenerateInput{
+				Tool: config.Tool{
+					Owner:         "loeffel-io",
+					Repo:          "ls-lint",
+					Version:       "v2.3.1",
+					Asset:         "ls-lint-{os}-{arch}.tar.gz",
+					Bins:          []string{"ls-lint"},
+					VersionPrefix: "",
+					BinMap:        map[string]string{"ls-lint": "ls-lint-darwin-arm64"},
+					Format:        "tar",
+				},
+				Lock: LockEntry{
+					URL:    "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-darwin-arm64.tar.gz",
+					SHA256: "sha256-PLAINTAR",
+				},
+			},
+			want: `{
+  stdenv,
+  fetchurl,
+}:
+stdenv.mkDerivation rec {
+  pname = "ls-lint";
+  version = "v2.3.1";
+
+  src = fetchurl {
+    url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-darwin-arm64.tar.gz";
+    sha256 = "sha256-PLAINTAR";
+  };
+
+  dontUnpack = true;
+
+  installPhase = ''
+    mkdir -p $out/bin
+    tar -xf $src -C $out/bin
+    mv $out/bin/ls-lint-darwin-arm64 $out/bin/ls-lint
+    chmod +x $out/bin/ls-lint
+  '';
+}
+`,
+		},
 	}
 
 	for _, tt := range tests {
