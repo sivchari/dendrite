@@ -188,7 +188,7 @@ func Generate(input *GenerateInput) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// GenerateAll writes a default.nix file for each input into outDir/<repo>/default.nix.
+// GenerateAll writes a default.nix file for each input into outDir/<owner>/<repo>/default.nix.
 func GenerateAll(inputs []GenerateInput, outDir string) error {
 	for i := range inputs {
 		content, err := Generate(&inputs[i])
@@ -196,7 +196,7 @@ func GenerateAll(inputs []GenerateInput, outDir string) error {
 			return err
 		}
 
-		dir := filepath.Join(outDir, inputs[i].Tool.Repo)
+		dir := filepath.Join(outDir, inputs[i].Tool.Owner, inputs[i].Tool.Repo)
 
 		if err := os.MkdirAll(dir, 0o755); err != nil { //nolint:gosec // standard directory permissions for Nix packages
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)

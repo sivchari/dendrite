@@ -730,16 +730,17 @@ func TestGenerateAll(t *testing.T) { //nolint:funlen // table-driven test with m
 	// Verify directory structure and file existence.
 	// Directory is now repo name, pname is repo name.
 	wantFiles := []struct {
-		repo string
-		bins []string
+		owner string
+		repo  string
+		bins  []string
 	}{
-		{"cli", []string{"gh"}},
-		{"ripgrep", []string{"rg"}},
-		{"aqua", []string{"aqua"}},
+		{"cli", "cli", []string{"gh"}},
+		{"BurntSushi", "ripgrep", []string{"rg"}},
+		{"aquaproj", "aqua", []string{"aqua"}},
 	}
 
 	for _, wf := range wantFiles {
-		path := filepath.Join(outDir, wf.repo, "default.nix")
+		path := filepath.Join(outDir, wf.owner, wf.repo, "default.nix")
 
 		info, err := os.Stat(path)
 		if err != nil {
@@ -867,7 +868,7 @@ func TestGenerateAll_contentMatchesGenerate(t *testing.T) {
 		t.Fatalf("GenerateAll() unexpected error: %v", err)
 	}
 
-	path := filepath.Join(outDir, "cli", "default.nix")
+	path := filepath.Join(outDir, "cli", "cli", "default.nix")
 
 	actual, err := os.ReadFile(path) //nolint:gosec // test file path from t.TempDir
 	if err != nil {
@@ -905,7 +906,7 @@ func TestGenerateAll_binsFallbackToRepo(t *testing.T) {
 	}
 
 	// When bins is empty, the directory and pname should use the repo name.
-	path := filepath.Join(outDir, "terraform", "default.nix")
+	path := filepath.Join(outDir, "hashicorp", "terraform", "default.nix")
 
 	content, err := os.ReadFile(path) //nolint:gosec // test reads generated file in temp dir
 	if err != nil {

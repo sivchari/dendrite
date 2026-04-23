@@ -150,7 +150,7 @@ tools:
 	}{
 		{
 			name:    "cli",
-			nixPath: filepath.Join(outDir, "cli", "default.nix"),
+			nixPath: filepath.Join(outDir, "cli", "cli", "default.nix"),
 			pname:   "cli",
 			version: "2.87.0",
 			url:     "https://github.com/cli/cli/releases/download/v2.87.0/gh_2.87.0_macOS_arm64.tar.gz",
@@ -159,7 +159,7 @@ tools:
 		},
 		{
 			name:    "ripgrep",
-			nixPath: filepath.Join(outDir, "ripgrep", "default.nix"),
+			nixPath: filepath.Join(outDir, "BurntSushi", "ripgrep", "default.nix"),
 			pname:   "ripgrep",
 			version: "14.1.0",
 			url:     "https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep-14.1.0-aarch64-darwin.tar.gz",
@@ -223,7 +223,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e t
 		expectedPname   string
 		expectedVersion string
 		expectedBins    []string
-		expectedDir     string // directory name under packages/
+		expectedDir     string // directory path under outDir (owner/repo)
 	}{
 		{
 			name: "explicit bins",
@@ -239,7 +239,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e t
 			expectedPname:   "cli",
 			expectedVersion: "2.87.0",
 			expectedBins:    []string{"gh"},
-			expectedDir:     "cli",
+			expectedDir:     "cli/cli",
 		},
 		{
 			name: "default bins from repo name",
@@ -253,7 +253,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e t
 			expectedPname:   "aqua",
 			expectedVersion: "2.39.0",
 			expectedBins:    []string{"aqua"},
-			expectedDir:     "aqua",
+			expectedDir:     "aquaproj/aqua",
 		},
 		{
 			name: "version with v prefix",
@@ -269,7 +269,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e t
 			expectedPname:   "bat",
 			expectedVersion: "0.24.0",
 			expectedBins:    []string{"bat"},
-			expectedDir:     "bat",
+			expectedDir:     "sharkdp/bat",
 		},
 		{
 			name: "version without v prefix",
@@ -285,7 +285,7 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e t
 			expectedPname:   "ripgrep",
 			expectedVersion: "14.1.0",
 			expectedBins:    []string{"rg"},
-			expectedDir:     "ripgrep",
+			expectedDir:     "BurntSushi/ripgrep",
 		},
 	}
 
