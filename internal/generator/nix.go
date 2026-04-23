@@ -49,13 +49,20 @@ stdenv.mkDerivation rec {
   installPhase = ''
     mkdir -p $out/bin
     {{ .ExtractCmd }}
-{{ range .Bins }}    chmod +x $out/bin/{{ . }}
+{{ range .Renames }}    mv $out/bin/{{ .From }} $out/bin/{{ .To }}
+{{ end }}{{ range .Bins }}    chmod +x $out/bin/{{ . }}
 {{ end }}  '';
 }
 `
 
 // nixTemplate is the parsed template, compiled once at init time.
 var nixTemplate = template.Must(template.New("default.nix").Parse(nixTemplateText))
+
+// renameEntry represents a mv command in the installPhase.
+type renameEntry struct {
+	From string
+	To   string
+}
 
 // templateData holds the values injected into the nix template.
 type templateData struct {
@@ -64,6 +71,7 @@ type templateData struct {
 	URL        string
 	SHA256     string
 	Bins       []string
+	Renames    []renameEntry
 	NeedsUnzip bool
 	ExtractCmd string
 }
@@ -92,6 +100,18 @@ func detectFormat(url string) assetFormat {
 	}
 }
 
+// tarCommand returns the appropriate tar command based on the URL extension.
+func tarCommand(url string) string {
+	switch {
+	case strings.HasSuffix(url, ".tar.bz2"):
+		return "tar -xjf $src -C $out/bin"
+	case strings.HasSuffix(url, ".tar.xz"):
+		return "tar -xJf $src -C $out/bin"
+	default:
+		return "tar -xzf $src -C $out/bin"
+	}
+}
+
 // Generate renders a default.nix file for the given input.
 // The version has its prefix stripped in the output based on VersionPrefix.
 func Generate(input *GenerateInput) ([]byte, error) {
@@ -109,7 +129,7 @@ func Generate(input *GenerateInput) ([]byte, error) {
 
 	switch format {
 	case formatTar:
-		extractCmd = "tar -xzf $src -C $out/bin"
+		extractCmd = tarCommand(input.Lock.URL)
 	case formatZip:
 		extractCmd = "unzip -o $src -d $out/bin"
 	case formatRaw:
@@ -120,12 +140,21 @@ func Generate(input *GenerateInput) ([]byte, error) {
 		}
 	}
 
+	var renames []renameEntry
+
+	for _, bin := range bins {
+		if src, ok := input.Tool.BinMap[bin]; ok {
+			renames = append(renames, renameEntry{From: src, To: bin})
+		}
+	}
+
 	data := templateData{
 		Pname:      input.Tool.Repo,
 		Version:    version,
 		URL:        input.Lock.URL,
 		SHA256:     input.Lock.SHA256,
 		Bins:       bins,
+		Renames:    renames,
 		NeedsUnzip: needsUnzip,
 		ExtractCmd: extractCmd,
 	}

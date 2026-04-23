@@ -42,6 +42,9 @@ type Tool struct {
 	OSMap map[string]string `yaml:"os_map"`
 	// ArchMap maps GOARCH values to the tool's arch naming. e.g., {"amd64": "x86_64"}
 	ArchMap map[string]string `yaml:"arch_map"`
+	// BinMap maps desired bin name to the actual filename inside the archive.
+	// e.g., {"ls-lint": "ls-lint-{os}-{arch}"}. Placeholders are expanded.
+	BinMap map[string]string `yaml:"bin_map"`
 
 	// name is the raw "owner/repo@version" string from the YAML.
 	name string
@@ -58,6 +61,7 @@ type rawTool struct {
 	VersionPrefix *string           `yaml:"version_prefix"`
 	OSMap         map[string]string `yaml:"os_map"`
 	ArchMap       map[string]string `yaml:"arch_map"`
+	BinMap        map[string]string `yaml:"bin_map"`
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface for Tool.
@@ -73,6 +77,7 @@ func (t *Tool) UnmarshalYAML(value *yaml.Node) error {
 	t.Bins = raw.Bins
 	t.OSMap = raw.OSMap
 	t.ArchMap = raw.ArchMap
+	t.BinMap = raw.BinMap
 
 	if raw.VersionPrefix != nil {
 		t.VersionPrefix = *raw.VersionPrefix

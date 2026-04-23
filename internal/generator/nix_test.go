@@ -418,6 +418,86 @@ stdenv.mkDerivation rec {
 }
 `,
 		},
+		{
+			name: "tar.bz2 uses tar -xjf",
+			input: GenerateInput{
+				Tool: config.Tool{
+					Owner:         "yyoshiki41",
+					Repo:          "xo",
+					Version:       "v0.1.1",
+					Asset:         "xo-{version}-{os}-{arch}.tar.bz2",
+					Bins:          []string{"xo"},
+					VersionPrefix: "v",
+				},
+				Lock: LockEntry{
+					URL:    "https://github.com/yyoshiki41/xo/releases/download/v0.1.1/xo-0.1.1-darwin-arm64.tar.bz2",
+					SHA256: "sha256-TARBZ2",
+				},
+			},
+			want: `{
+  stdenv,
+  fetchurl,
+}:
+stdenv.mkDerivation rec {
+  pname = "xo";
+  version = "0.1.1";
+
+  src = fetchurl {
+    url = "https://github.com/yyoshiki41/xo/releases/download/v0.1.1/xo-0.1.1-darwin-arm64.tar.bz2";
+    sha256 = "sha256-TARBZ2";
+  };
+
+  dontUnpack = true;
+
+  installPhase = ''
+    mkdir -p $out/bin
+    tar -xjf $src -C $out/bin
+    chmod +x $out/bin/xo
+  '';
+}
+`,
+		},
+		{
+			name: "bin_map renames archive binary",
+			input: GenerateInput{
+				Tool: config.Tool{
+					Owner:         "loeffel-io",
+					Repo:          "ls-lint",
+					Version:       "v2.3.1",
+					Asset:         "ls-lint-{os}-{arch}.tar.gz",
+					Bins:          []string{"ls-lint"},
+					VersionPrefix: "",
+					BinMap:        map[string]string{"ls-lint": "ls-lint-darwin-arm64"},
+				},
+				Lock: LockEntry{
+					URL:    "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-darwin-arm64.tar.gz",
+					SHA256: "sha256-BINMAP",
+				},
+			},
+			want: `{
+  stdenv,
+  fetchurl,
+}:
+stdenv.mkDerivation rec {
+  pname = "ls-lint";
+  version = "v2.3.1";
+
+  src = fetchurl {
+    url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-darwin-arm64.tar.gz";
+    sha256 = "sha256-BINMAP";
+  };
+
+  dontUnpack = true;
+
+  installPhase = ''
+    mkdir -p $out/bin
+    tar -xzf $src -C $out/bin
+    mv $out/bin/ls-lint-darwin-arm64 $out/bin/ls-lint
+    chmod +x $out/bin/ls-lint
+  '';
+}
+`,
+		},
 	}
 
 	for _, tt := range tests {
