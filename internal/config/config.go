@@ -49,6 +49,8 @@ type Tool struct {
 	// Valid values: "tar.gz", "tar.bz2", "tar.xz", "tar", "zip", "raw".
 	// If empty, format is auto-detected from URL extension.
 	Format string `yaml:"format"`
+	// StripComponents removes leading directory components when extracting tar/zip archives.
+	StripComponents int `yaml:"strip_components"`
 
 	// name is the raw "owner/repo@version" string from the YAML.
 	name string
@@ -58,15 +60,16 @@ type Tool struct {
 
 // rawTool is used for YAML unmarshalling before validation.
 type rawTool struct {
-	Name          string            `yaml:"name"`
-	Asset         string            `yaml:"asset"`
-	URL           string            `yaml:"url"`
-	Bins          []string          `yaml:"bins"`
-	VersionPrefix *string           `yaml:"version_prefix"`
-	OSMap         map[string]string `yaml:"os_map"`
-	ArchMap       map[string]string `yaml:"arch_map"`
-	BinMap        map[string]string `yaml:"bin_map"`
-	Format        string            `yaml:"format"`
+	Name            string            `yaml:"name"`
+	Asset           string            `yaml:"asset"`
+	URL             string            `yaml:"url"`
+	Bins            []string          `yaml:"bins"`
+	VersionPrefix   *string           `yaml:"version_prefix"`
+	OSMap           map[string]string `yaml:"os_map"`
+	ArchMap         map[string]string `yaml:"arch_map"`
+	BinMap          map[string]string `yaml:"bin_map"`
+	Format          string            `yaml:"format"`
+	StripComponents int               `yaml:"strip_components"`
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface for Tool.
@@ -84,6 +87,7 @@ func (t *Tool) UnmarshalYAML(value *yaml.Node) error {
 	t.ArchMap = raw.ArchMap
 	t.BinMap = raw.BinMap
 	t.Format = raw.Format
+	t.StripComponents = raw.StripComponents
 
 	if raw.VersionPrefix != nil {
 		t.VersionPrefix = *raw.VersionPrefix

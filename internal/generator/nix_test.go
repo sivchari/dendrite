@@ -540,6 +540,46 @@ stdenv.mkDerivation rec {
 }
 `,
 		},
+		{
+			name: "strip_components removes leading directory",
+			input: GenerateInput{
+				Tool: config.Tool{
+					Owner:           "golangci",
+					Repo:            "golangci-lint",
+					Version:         "v2.11.4",
+					Asset:           "golangci-lint-{version}-{os}-{arch}.tar.gz",
+					Bins:            []string{"golangci-lint"},
+					VersionPrefix:   "v",
+					StripComponents: 1,
+				},
+				Lock: LockEntry{
+					URL:    "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-darwin-arm64.tar.gz",
+					SHA256: "sha256-STRIP",
+				},
+			},
+			want: `{
+  stdenv,
+  fetchurl,
+}:
+stdenv.mkDerivation rec {
+  pname = "golangci-lint";
+  version = "2.11.4";
+
+  src = fetchurl {
+    url = "https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-darwin-arm64.tar.gz";
+    sha256 = "sha256-STRIP";
+  };
+
+  dontUnpack = true;
+
+  installPhase = ''
+    mkdir -p $out/bin
+    tar -xzf $src -C $out/bin --strip-components=1
+    chmod +x $out/bin/golangci-lint
+  '';
+}
+`,
+		},
 	}
 
 	for _, tt := range tests {

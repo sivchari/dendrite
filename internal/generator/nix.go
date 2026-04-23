@@ -113,24 +113,30 @@ func detectFormat(url, formatOverride string) assetFormat {
 }
 
 // tarCommand returns the appropriate tar command based on the format override or URL extension.
-func tarCommand(url, formatOverride string) string {
+func tarCommand(url, formatOverride string, stripComponents int) string {
 	key := formatOverride
 	if key == "" {
 		key = url
 	}
 
+	var base string
+
 	switch {
 	case key == "tar":
-		return "tar -xf $src -C $out/bin"
-	case key == "tar.gz":
-		return "tar -xzf $src -C $out/bin"
+		base = "tar -xf $src -C $out/bin"
 	case key == "tar.bz2" || strings.HasSuffix(key, ".tar.bz2"):
-		return "tar -xjf $src -C $out/bin"
+		base = "tar -xjf $src -C $out/bin"
 	case key == "tar.xz" || strings.HasSuffix(key, ".tar.xz"):
-		return "tar -xJf $src -C $out/bin"
+		base = "tar -xJf $src -C $out/bin"
 	default:
-		return "tar -xzf $src -C $out/bin"
+		base = "tar -xzf $src -C $out/bin"
 	}
+
+	if stripComponents > 0 {
+		base += fmt.Sprintf(" --strip-components=%d", stripComponents)
+	}
+
+	return base
 }
 
 // Generate renders a default.nix file for the given input.
@@ -150,7 +156,7 @@ func Generate(input *GenerateInput) ([]byte, error) {
 
 	switch format {
 	case formatTar:
-		extractCmd = tarCommand(input.Lock.URL, input.Tool.Format)
+		extractCmd = tarCommand(input.Lock.URL, input.Tool.Format, input.Tool.StripComponents)
 	case formatZip:
 		extractCmd = "unzip -o $src -d $out/bin"
 	case formatRaw:
