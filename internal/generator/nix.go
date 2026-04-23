@@ -108,6 +108,8 @@ func Generate(input *GenerateInput) ([]byte, error) {
 	var extractCmd string
 
 	switch format {
+	case formatTar:
+		extractCmd = "tar -xzf $src -C $out/bin"
 	case formatZip:
 		extractCmd = "unzip -o $src -d $out/bin"
 	case formatRaw:
@@ -116,8 +118,6 @@ func Generate(input *GenerateInput) ([]byte, error) {
 		} else {
 			extractCmd = "cp $src $out/bin/" + input.Tool.Repo
 		}
-	default:
-		extractCmd = "tar -xzf $src -C $out/bin"
 	}
 
 	data := templateData{
