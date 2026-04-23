@@ -379,6 +379,45 @@ stdenv.mkDerivation rec {
 }
 `,
 		},
+		{
+			name: "raw binary without archive extension",
+			input: GenerateInput{
+				Tool: config.Tool{
+					Owner:         "secretlint",
+					Repo:          "secretlint",
+					Version:       "v10.2.0",
+					Asset:         "secretlint-{version}-{os}-{arch}",
+					Bins:          []string{"secretlint"},
+					VersionPrefix: "v",
+				},
+				Lock: LockEntry{
+					URL:    "https://github.com/secretlint/secretlint/releases/download/v10.2.0/secretlint-10.2.0-darwin-arm64",
+					SHA256: "sha256-RAWBIN",
+				},
+			},
+			want: `{
+  stdenv,
+  fetchurl,
+}:
+stdenv.mkDerivation rec {
+  pname = "secretlint";
+  version = "10.2.0";
+
+  src = fetchurl {
+    url = "https://github.com/secretlint/secretlint/releases/download/v10.2.0/secretlint-10.2.0-darwin-arm64";
+    sha256 = "sha256-RAWBIN";
+  };
+
+  dontUnpack = true;
+
+  installPhase = ''
+    mkdir -p $out/bin
+    cp $src $out/bin/secretlint
+    chmod +x $out/bin/secretlint
+  '';
+}
+`,
+		},
 	}
 
 	for _, tt := range tests {

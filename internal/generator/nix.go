@@ -68,6 +68,30 @@ type templateData struct {
 	ExtractCmd string
 }
 
+// assetFormat represents the type of asset archive.
+type assetFormat int
+
+const (
+	formatTar assetFormat = iota
+	formatZip
+	formatRaw
+)
+
+// detectFormat determines the asset format from the URL.
+func detectFormat(url string) assetFormat {
+	switch {
+	case strings.HasSuffix(url, ".zip"):
+		return formatZip
+	case strings.HasSuffix(url, ".tar.gz"),
+		strings.HasSuffix(url, ".tar.xz"),
+		strings.HasSuffix(url, ".tar.bz2"),
+		strings.HasSuffix(url, ".tgz"):
+		return formatTar
+	default:
+		return formatRaw
+	}
+}
+
 // Generate renders a default.nix file for the given input.
 // The version has its prefix stripped in the output based on VersionPrefix.
 func Generate(input *GenerateInput) ([]byte, error) {
@@ -78,11 +102,22 @@ func Generate(input *GenerateInput) ([]byte, error) {
 		bins = []string{input.Tool.Repo}
 	}
 
-	needsUnzip := strings.HasSuffix(input.Lock.URL, ".zip")
-	extractCmd := "tar -xzf $src -C $out/bin"
+	format := detectFormat(input.Lock.URL)
+	needsUnzip := format == formatZip
 
-	if needsUnzip {
+	var extractCmd string
+
+	switch format {
+	case formatZip:
 		extractCmd = "unzip -o $src -d $out/bin"
+	case formatRaw:
+		if len(bins) == 1 {
+			extractCmd = "cp $src $out/bin/" + bins[0]
+		} else {
+			extractCmd = "cp $src $out/bin/" + input.Tool.Repo
+		}
+	default:
+		extractCmd = "tar -xzf $src -C $out/bin"
 	}
 
 	data := templateData{
