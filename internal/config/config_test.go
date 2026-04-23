@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestParseBytes(t *testing.T) { //nolint:funlen // table-driven test with many cases
+func TestParseBytes(t *testing.T) { //nolint:funlen,gocognit // table-driven test with many cases
 	t.Parallel()
 
 	tests := []struct {
