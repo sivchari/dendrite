@@ -139,6 +139,28 @@ func tarCommand(url, formatOverride string, stripComponents int) string {
 	return base
 }
 
+// zipCommand returns the unzip command. When strip_components > 0,
+// it extracts to a temp dir then copies only the bins to $out/bin.
+func zipCommand(bins []string, stripComponents int) string {
+	if stripComponents == 0 {
+		return "unzip -o $src -d $out/bin"
+	}
+
+	cmd := "tmpdir=$(mktemp -d) && unzip -o $src -d $tmpdir && find $tmpdir -type f \\( "
+
+	for i, bin := range bins {
+		if i > 0 {
+			cmd += " -o "
+		}
+
+		cmd += "-name " + bin
+	}
+
+	cmd += " \\) -exec cp {} $out/bin/ \\;"
+
+	return cmd
+}
+
 // Generate renders a default.nix file for the given input.
 // The version has its prefix stripped in the output based on VersionPrefix.
 func Generate(input *GenerateInput) ([]byte, error) {
@@ -158,7 +180,7 @@ func Generate(input *GenerateInput) ([]byte, error) {
 	case formatTar:
 		extractCmd = tarCommand(input.Lock.URL, input.Tool.Format, input.Tool.StripComponents)
 	case formatZip:
-		extractCmd = "unzip -o $src -d $out/bin"
+		extractCmd = zipCommand(bins, input.Tool.StripComponents)
 	case formatRaw:
 		if len(bins) == 1 {
 			extractCmd = "cp $src $out/bin/" + bins[0]
