@@ -49,6 +49,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -88,6 +89,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -127,6 +129,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -167,6 +170,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   nativeBuildInputs = [ unzip ];
 
@@ -208,6 +212,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -247,6 +252,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -289,6 +295,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   nativeBuildInputs = [ unzip ];
 
@@ -330,6 +337,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -370,6 +378,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -409,6 +418,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -448,6 +458,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -488,6 +499,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -530,6 +542,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin
@@ -571,6 +584,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 
   installPhase = ''
     mkdir -p $out/bin

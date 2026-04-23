@@ -43,6 +43,7 @@ stdenv.mkDerivation rec {
   };
 
   dontUnpack = true;
+  dontStrip = true;
 {{ if .NeedsUnzip }}
   nativeBuildInputs = [ unzip ];
 {{ end }}
