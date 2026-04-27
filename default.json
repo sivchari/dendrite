@@ -1,0 +1,14 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": ["Renovate preset for dendrite (https://github.com/sivchari/dendrite). Automatically updates tool versions in dendrite.yaml."],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)dendrite\\.yaml$"],
+      "matchStrings": [
+        "name:\\s*(?<depName>[^@\\s]+)@(?<currentValue>[^\\s]+)\\n\\s*asset:"
+      ],
+      "datasourceTemplate": "github-releases"
+    }
+  ]
+}
