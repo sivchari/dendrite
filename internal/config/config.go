@@ -27,9 +27,10 @@ type Tool struct {
 	Repo string `yaml:"-"`
 	// Version is the version string including any prefix (e.g. "v2.87.0").
 	Version string `yaml:"-"`
-	// Asset is the asset filename pattern with placeholders like {version}, {os}, {arch}.
+	// Asset maps OS names to asset filename patterns with placeholders like {version}, {os}, {arch}.
+	// Each key is a GOOS value (e.g. "darwin", "linux") and the value is the asset pattern for that OS.
 	// Mutually exclusive with URL.
-	Asset string `yaml:"asset"`
+	Asset map[string]string `yaml:"asset"`
 	// URL is a direct download URL pattern with placeholders.
 	// Use this for non-GitHub sources. Mutually exclusive with Asset.
 	URL string `yaml:"url"`
@@ -61,7 +62,7 @@ type Tool struct {
 // rawTool is used for YAML unmarshalling before validation.
 type rawTool struct {
 	Name            string            `yaml:"name"`
-	Asset           string            `yaml:"asset"`
+	Asset           map[string]string `yaml:"asset"`
 	URL             string            `yaml:"url"`
 	Bins            []string          `yaml:"bins"`
 	VersionPrefix   *string           `yaml:"version_prefix"`
@@ -144,7 +145,7 @@ func validateTool(t *Tool, index int) error {
 
 	errs = appendNameErrors(errs, t, index)
 
-	hasAsset := strings.TrimSpace(t.Asset) != ""
+	hasAsset := len(t.Asset) > 0
 	hasURL := strings.TrimSpace(t.URL) != ""
 
 	if !hasAsset && !hasURL {

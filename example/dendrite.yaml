@@ -1,11 +1,17 @@
 tools:
   # GitHub Releases (tar.gz)
   - name: aquaproj/aqua@v2.39.0
-    asset: aqua_{os}_{arch}.tar.gz
+    asset:
+      darwin: aqua_{os}_{arch}.tar.gz
+      linux: aqua_{os}_{arch}.tar.gz
 
-  # GitHub Releases (zip, multiple bins)
+  # GitHub Releases (per-OS format)
   - name: cli/cli@v2.87.0
-    asset: gh_{version}_{os}_{arch}.zip
+    asset:
+      darwin: gh_{version}_{os}_{arch}.zip
+      linux: gh_{version}_{os}_{arch}.tar.gz
+    os_map:
+      darwin: macOS
     bins:
       - gh
 
@@ -17,7 +23,9 @@ tools:
 
   # Custom version prefix
   - name: golang/go@go1.26.0
-    asset: go{version}.{os}-{arch}.tar.gz
+    asset:
+      darwin: go{version}.{os}-{arch}.tar.gz
+      linux: go{version}.{os}-{arch}.tar.gz
     version_prefix: "go"
     bins:
       - go

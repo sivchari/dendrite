@@ -111,11 +111,15 @@ func TestE2E_FullPipeline(t *testing.T) { //nolint:funlen // e2e test with compr
 
 	configContent := `tools:
   - name: cli/cli@v2.87.0
-    asset: gh_{version}_{os}_{arch}.tar.gz
+    asset:
+      darwin: gh_{version}_{os}_{arch}.tar.gz
+      linux: gh_{version}_{os}_{arch}.tar.gz
     bins:
       - gh
   - name: BurntSushi/ripgrep@14.1.0
-    asset: ripgrep-{version}-{arch}-{os}.tar.gz
+    asset:
+      darwin: ripgrep-{version}-{arch}-{os}.tar.gz
+      linux: ripgrep-{version}-{arch}-{os}.tar.gz
     bins:
       - rg
 `
@@ -229,7 +233,9 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e t
 			name: "explicit bins",
 			configYAML: `tools:
   - name: cli/cli@v2.87.0
-    asset: gh_{version}_{os}_{arch}.tar.gz
+    asset:
+      darwin: gh_{version}_{os}_{arch}.tar.gz
+      linux: gh_{version}_{os}_{arch}.tar.gz
     bins:
       - gh
 `,
@@ -245,7 +251,9 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e t
 			name: "default bins from repo name",
 			configYAML: `tools:
   - name: aquaproj/aqua@v2.39.0
-    asset: aqua_{os}_{arch}.tar.gz
+    asset:
+      darwin: aqua_{os}_{arch}.tar.gz
+      linux: aqua_{os}_{arch}.tar.gz
 `,
 			lockToolName:    "aquaproj/aqua@v2.39.0",
 			lockURL:         "https://github.com/aquaproj/aqua/releases/download/v2.39.0/aqua_darwin_arm64.tar.gz",
@@ -259,7 +267,9 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e t
 			name: "version with v prefix",
 			configYAML: `tools:
   - name: sharkdp/bat@v0.24.0
-    asset: bat-v{version}-{arch}-{os}.tar.gz
+    asset:
+      darwin: bat-v{version}-{arch}-{os}.tar.gz
+      linux: bat-v{version}-{arch}-{os}.tar.gz
     bins:
       - bat
 `,
@@ -275,7 +285,9 @@ func TestE2E_MultipleToolConfigurations(t *testing.T) { //nolint:funlen // e2e t
 			name: "version without v prefix",
 			configYAML: `tools:
   - name: BurntSushi/ripgrep@14.1.0
-    asset: ripgrep-{version}-{arch}-{os}.tar.gz
+    asset:
+      darwin: ripgrep-{version}-{arch}-{os}.tar.gz
+      linux: ripgrep-{version}-{arch}-{os}.tar.gz
     bins:
       - rg
 `,
@@ -464,7 +476,9 @@ func TestE2E_ErrorCases(t *testing.T) { //nolint:funlen // e2e error case test
 
 		configContent := `tools:
   - name: cli/cli@v2.87.0
-    asset: gh_{version}_{os}_{arch}.tar.gz
+    asset:
+      darwin: gh_{version}_{os}_{arch}.tar.gz
+      linux: gh_{version}_{os}_{arch}.tar.gz
     bins:
       - gh
 `
@@ -499,11 +513,15 @@ func TestE2E_ErrorCases(t *testing.T) { //nolint:funlen // e2e error case test
 		// Config has two tools.
 		configContent := `tools:
   - name: cli/cli@v2.87.0
-    asset: gh_{version}_{os}_{arch}.tar.gz
+    asset:
+      darwin: gh_{version}_{os}_{arch}.tar.gz
+      linux: gh_{version}_{os}_{arch}.tar.gz
     bins:
       - gh
   - name: BurntSushi/ripgrep@14.1.0
-    asset: ripgrep-{version}-{arch}-{os}.tar.gz
+    asset:
+      darwin: ripgrep-{version}-{arch}-{os}.tar.gz
+      linux: ripgrep-{version}-{arch}-{os}.tar.gz
     bins:
       - rg
 `

@@ -273,7 +273,12 @@ func resolveCandidates(tool *config.Tool, p platform.Platform) []string {
 		return []string{platform.Resolve(tool.URL, tool.Version, tool.VersionPrefix, p, tool.OSMap, tool.ArchMap)}
 	}
 
-	assetName := platform.Resolve(tool.Asset, tool.Version, tool.VersionPrefix, p, tool.OSMap, tool.ArchMap)
+	assetPattern, ok := tool.Asset[p.OS]
+	if !ok {
+		return nil
+	}
+
+	assetName := platform.Resolve(assetPattern, tool.Version, tool.VersionPrefix, p, tool.OSMap, tool.ArchMap)
 
 	return []string{buildGitHubReleaseURL(tool.Owner, tool.Repo, tool.Version, assetName)}
 }
