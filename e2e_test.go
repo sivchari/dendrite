@@ -221,13 +221,13 @@ tools:
 			assertContains(t, nix, "stdenv,", "nix function arg stdenv")
 			assertContains(t, nix, "fetchurl,", "nix function arg fetchurl")
 			assertContains(t, nix, "stdenv.mkDerivation rec {", "mkDerivation")
-			assertContains(t, nix, "src = fetchurl platformSrc;", "fetchurl platformSrc")
+			assertContains(t, nix, "src = fetchurl { inherit (platformSrc) url sha256; };", "fetchurl inherit")
 			assertContains(t, nix, "sources = {", "sources let binding")
 			assertContains(t, nix, "platform = stdenv.hostPlatform.system;", "platform selection")
 			assertContains(t, nix, "dontUnpack = true;", "dontUnpack")
 			assertContains(t, nix, "installPhase = ''", "installPhase")
 			assertContains(t, nix, "mkdir -p $out/bin", "mkdir in installPhase")
-			assertContains(t, nix, "tar -xzf $src -C $out/bin", "tar in installPhase")
+			assertContains(t, nix, "${platformSrc.extract}", "extract in installPhase")
 		})
 	}
 }
