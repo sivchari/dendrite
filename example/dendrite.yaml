@@ -15,9 +15,11 @@ tools:
     bins:
       - gh
 
-  # Non-GitHub URL
+  # Non-GitHub URL (per-platform)
   - name: google/cloud-sdk@v529.0.0
-    url: https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-{version}-darwin-arm.tar.gz
+    url:
+      darwin/arm64: https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-{version}-darwin-arm.tar.gz
+      linux/amd64: https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-{version}-linux-x86_64.tar.gz
     bins:
       - gcloud
 

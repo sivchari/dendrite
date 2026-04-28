@@ -283,7 +283,9 @@ tools:
 			input: `
 tools:
   - name: golang/go@go1.26.0
-    url: https://go.dev/dl/go{version}.darwin-arm64.tar.gz
+    url:
+      darwin/arm64: https://go.dev/dl/go{version}.darwin-arm64.tar.gz
+      linux/amd64: https://go.dev/dl/go{version}.linux-amd64.tar.gz
     version_prefix: "go"
     bins:
       - go
@@ -295,7 +297,8 @@ tools:
 				assertEqual(t, "Owner", "golang", tool.Owner)
 				assertEqual(t, "Repo", "go", tool.Repo)
 				assertEqual(t, "Version", "go1.26.0", tool.Version)
-				assertEqual(t, "URL", "https://go.dev/dl/go{version}.darwin-arm64.tar.gz", tool.URL)
+				assertEqual(t, "URL[darwin/arm64]", "https://go.dev/dl/go{version}.darwin-arm64.tar.gz", tool.URL["darwin/arm64"])
+				assertEqual(t, "URL[linux/amd64]", "https://go.dev/dl/go{version}.linux-amd64.tar.gz", tool.URL["linux/amd64"])
 				if len(tool.Asset) != 0 {
 					t.Errorf("expected empty Asset map, got %v", tool.Asset)
 				}
@@ -310,7 +313,8 @@ tools:
   - name: cli/cli@v2.87.0
     asset:
       darwin/arm64: gh_{version}_macOS_arm64.tar.gz
-    url: https://example.com/gh.tar.gz
+    url:
+      darwin/arm64: https://example.com/gh.tar.gz
 `,
 			wantErr:   true,
 			errSubstr: "asset and url are mutually exclusive",
@@ -526,7 +530,22 @@ func TestPlatforms_empty(t *testing.T) {
 
 	cfg := &Config{
 		Tools: []Tool{
-			{URL: "https://example.com/tool.tar.gz"},
+			{URL: map[string]string{"darwin/arm64": "https://example.com/tool.tar.gz"}},
+		},
+	}
+
+	got := cfg.Platforms()
+	want := []string{"darwin/arm64"}
+
+	assertSliceEqual(t, "Platforms", want, got)
+}
+
+func TestPlatforms_emptyNoKeys(t *testing.T) {
+	t.Parallel()
+
+	cfg := &Config{
+		Tools: []Tool{
+			{},
 		},
 	}
 

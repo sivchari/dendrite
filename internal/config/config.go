@@ -7,7 +7,6 @@ import (
 	"os"
 	"regexp"
 	"sort"
-	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -30,6 +29,10 @@ func (c *Config) Platforms() []string {
 
 	for i := range c.Tools {
 		for key := range c.Tools[i].Asset {
+			seen[key] = struct{}{}
+		}
+
+		for key := range c.Tools[i].URL {
 			seen[key] = struct{}{}
 		}
 	}
@@ -55,9 +58,9 @@ type Tool struct {
 	// Asset maps platform keys (e.g. "darwin/arm64", "linux/amd64") to asset filename
 	// patterns with the {version} placeholder. Mutually exclusive with URL.
 	Asset map[string]string `yaml:"asset"`
-	// URL is a direct download URL pattern with placeholders.
-	// Use this for non-GitHub sources. Mutually exclusive with Asset.
-	URL string `yaml:"url"`
+	// URL maps platform keys (e.g. "darwin/arm64") to direct download URL patterns
+	// with placeholders. Use this for non-GitHub sources. Mutually exclusive with Asset.
+	URL map[string]string `yaml:"url"`
 	// Bins is the list of binary names. Defaults to [repo name] if not specified.
 	Bins []string `yaml:"bins"`
 	// VersionPrefix is the prefix to strip from version when expanding {version}.
@@ -83,7 +86,7 @@ type Tool struct {
 type rawTool struct {
 	Name            string            `yaml:"name"`
 	Asset           map[string]string `yaml:"asset"`
-	URL             string            `yaml:"url"`
+	URL             map[string]string `yaml:"url"`
 	Bins            []string          `yaml:"bins"`
 	VersionPrefix   *string           `yaml:"version_prefix"`
 	BinMap          map[string]string `yaml:"bin_map"`
@@ -162,7 +165,7 @@ func validateTool(t *Tool, index int) error {
 	errs = appendNameErrors(errs, t, index)
 
 	hasAsset := len(t.Asset) > 0
-	hasURL := strings.TrimSpace(t.URL) != ""
+	hasURL := len(t.URL) > 0
 
 	if !hasAsset && !hasURL {
 		errs = append(errs, fmt.Errorf("tools[%d]: asset or url is required", index))
@@ -176,6 +179,13 @@ func validateTool(t *Tool, index int) error {
 	for key := range t.Asset {
 		if !platformKeyPattern.MatchString(key) {
 			errs = append(errs, fmt.Errorf("tools[%d]: invalid asset key %q: must match os/arch pattern (e.g. darwin/arm64)", index, key))
+		}
+	}
+
+	// Validate that url keys match the "os/arch" pattern.
+	for key := range t.URL {
+		if !platformKeyPattern.MatchString(key) {
+			errs = append(errs, fmt.Errorf("tools[%d]: invalid url key %q: must match os/arch pattern (e.g. darwin/arm64)", index, key))
 		}
 	}
 

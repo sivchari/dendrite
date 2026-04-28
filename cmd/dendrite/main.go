@@ -275,11 +275,11 @@ func executeLock(cfg *config.Config, lockPath string, platforms []platform.Platf
 
 // resolveCandidates returns the candidate URL for a tool on a given platform.
 func resolveCandidates(tool *config.Tool, p platform.Platform) []string {
-	if tool.URL != "" {
-		return []string{platform.Resolve(tool.URL, tool.Version, tool.VersionPrefix)}
-	}
-
 	platformKey := p.OS + "/" + p.Arch
+
+	if urlPattern, ok := tool.URL[platformKey]; ok {
+		return []string{platform.Resolve(urlPattern, tool.Version, tool.VersionPrefix)}
+	}
 
 	assetPattern, ok := tool.Asset[platformKey]
 	if !ok {
