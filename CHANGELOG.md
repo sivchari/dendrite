@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.3.0](https://github.com/sivchari/dendrite/compare/v0.2.0...v0.3.0) - 2026-04-28
+- feat!: change URL field from string to per-platform map by @sivchari in https://github.com/sivchari/dendrite/pull/18
+- feat: per-platform installPhase in generated default.nix by @sivchari in https://github.com/sivchari/dendrite/pull/20
+- release v0.3.0 by @sivchari in https://github.com/sivchari/dendrite/pull/21
+
 ## [v0.2.0](https://github.com/sivchari/dendrite/compare/v0.1.0...v0.2.0) - 2026-04-28
 - feat!: generate multi-platform default.nix with stdenv.hostPlatform selection by @sivchari in https://github.com/sivchari/dendrite/pull/16
 
