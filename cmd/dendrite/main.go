@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/sivchari/dendrite/internal/config"
@@ -72,7 +71,6 @@ func runGenerate(args []string) error { //nolint:funlen // CLI command with sequ
 
 	configFile := fs.String("f", "dendrite.yaml", "path to config file")
 	outDir := fs.String("o", "packages/", "output directory")
-	platformFlag := fs.String("p", runtime.GOOS+"/"+runtime.GOARCH, "target platform (os/arch)")
 	runLockFirst := fs.Bool("lock", false, "run lock before generate")
 
 	if err := fs.Parse(args); err != nil {
@@ -85,24 +83,25 @@ func runGenerate(args []string) error { //nolint:funlen // CLI command with sequ
 	}
 
 	if *runLockFirst {
-		p, parseErr := parsePlatform(*platformFlag)
-		if parseErr != nil {
-			return fmt.Errorf("failed to parse platform: %w", parseErr)
+		platformStrs := cfg.Platforms()
+
+		var platforms []platform.Platform
+
+		for _, s := range platformStrs {
+			p, parseErr := parsePlatform(s)
+			if parseErr != nil {
+				return fmt.Errorf("failed to parse platform: %w", parseErr)
+			}
+
+			platforms = append(platforms, p)
 		}
 
 		lockPath := lockFilePath(*configFile)
 
-		if lockErr := executeLock(cfg, lockPath, []platform.Platform{p}); lockErr != nil {
+		if lockErr := executeLock(cfg, lockPath, platforms); lockErr != nil {
 			return fmt.Errorf("failed to execute lock: %w", lockErr)
 		}
 	}
-
-	p, err := parsePlatform(*platformFlag)
-	if err != nil {
-		return fmt.Errorf("failed to parse platform: %w", err)
-	}
-
-	pKey := lock.PlatformKey(p)
 
 	lockPath := lockFilePath(*configFile)
 
@@ -116,17 +115,31 @@ func runGenerate(args []string) error { //nolint:funlen // CLI command with sequ
 	for i := range cfg.Tools {
 		name := toolName(&cfg.Tools[i])
 
-		entry := lock.Lookup(lf, name, pKey)
-		if entry == nil {
-			return fmt.Errorf("no lock entry found for %s on platform %s; run 'dendrite lock' first", name, pKey)
+		locks := make(map[string]generator.LockEntry)
+
+		// Collect lock entries for all platforms in the lock file for this tool.
+		for j := range lf.Tools {
+			if lf.Tools[j].Name != name {
+				continue
+			}
+
+			for pKey, asset := range lf.Tools[j].Assets {
+				locks[pKey] = generator.LockEntry{
+					URL:    asset.URL,
+					SHA256: asset.SHA256,
+				}
+			}
+
+			break
+		}
+
+		if len(locks) == 0 {
+			return fmt.Errorf("no lock entries found for %s; run 'dendrite lock' first", name)
 		}
 
 		inputs = append(inputs, generator.GenerateInput{
-			Tool: cfg.Tools[i],
-			Lock: generator.LockEntry{
-				URL:    entry.URL,
-				SHA256: entry.SHA256,
-			},
+			Tool:  cfg.Tools[i],
+			Locks: locks,
 		})
 	}
 

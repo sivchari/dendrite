@@ -78,6 +78,34 @@ func TestResolve(t *testing.T) { //nolint:funlen // table-driven test
 	}
 }
 
+func TestNixSystem(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		platformKey string
+		want        string
+	}{
+		{"darwin_arm64", "darwin_arm64", "aarch64-darwin"},
+		{"darwin_amd64", "darwin_amd64", "x86_64-darwin"},
+		{"linux_arm64", "linux_arm64", "aarch64-linux"},
+		{"linux_amd64", "linux_amd64", "x86_64-linux"},
+		{"unknown key", "freebsd_amd64", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := NixSystem(tt.platformKey)
+
+			if got != tt.want {
+				t.Errorf("NixSystem(%q) = %q, want %q", tt.platformKey, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPlatformConstants(t *testing.T) {
 	t.Parallel()
 
