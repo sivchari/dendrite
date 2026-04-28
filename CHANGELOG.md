@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.0](https://github.com/sivchari/dendrite/compare/v0.1.0...v0.2.0) - 2026-04-28
+- feat!: generate multi-platform default.nix with stdenv.hostPlatform selection by @sivchari in https://github.com/sivchari/dendrite/pull/16
+
 ## [v0.1.0](https://github.com/sivchari/dendrite/commits/v0.1.0) - 2026-04-28
 - Fix golangci-lint issues by @sivchari in https://github.com/sivchari/dendrite/pull/2
 - Fix gocognit lint for TestParseBytes by @sivchari in https://github.com/sivchari/dendrite/pull/3
