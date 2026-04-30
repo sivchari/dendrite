@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.4.0](https://github.com/sivchari/dendrite/compare/v0.3.0...v0.4.0) - 2026-04-30
+- fix: use nix indented strings for extract and conditionally include lib/unzip by @sivchari in https://github.com/sivchari/dendrite/pull/22
+
 ## [v0.3.0](https://github.com/sivchari/dendrite/compare/v0.2.0...v0.3.0) - 2026-04-28
 - feat!: change URL field from string to per-platform map by @sivchari in https://github.com/sivchari/dendrite/pull/18
 - feat: per-platform installPhase in generated default.nix by @sivchari in https://github.com/sivchari/dendrite/pull/20
