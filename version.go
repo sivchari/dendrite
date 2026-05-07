@@ -2,4 +2,4 @@
 package dendrite
 
 // Version is the current version of dendrite.
-const Version = "0.4.0"
+const Version = "0.5.0"
