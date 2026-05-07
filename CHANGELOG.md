@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.5.0](https://github.com/sivchari/dendrite/compare/v0.4.0...v0.5.0) - 2026-05-07
+- fix: extract only specified bins from tar/zip archives by @sivchari in https://github.com/sivchari/dendrite/pull/24
+- release v0.5.0 by @sivchari in https://github.com/sivchari/dendrite/pull/26
+
 ## [v0.4.0](https://github.com/sivchari/dendrite/compare/v0.3.0...v0.4.0) - 2026-04-30
 - fix: use nix indented strings for extract and conditionally include lib/unzip by @sivchari in https://github.com/sivchari/dendrite/pull/22
 
