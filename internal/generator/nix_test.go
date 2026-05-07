@@ -52,13 +52,13 @@ func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many
 				"    \"aarch64-darwin\" = {\n" +
 				"      url = \"https://github.com/cli/cli/releases/download/v2.87.0/gh_2.87.0_macOS_arm64.tar.gz\";\n" +
 				"      sha256 = \"sha256-XXXX\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f \\( -name gh \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"    \"x86_64-linux\" = {\n" +
 				"      url = \"https://github.com/cli/cli/releases/download/v2.87.0/gh_2.87.0_linux_amd64.tar.gz\";\n" +
 				"      sha256 = \"sha256-YYYY\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f \\( -name gh \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"  };\n" +
@@ -111,7 +111,7 @@ func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many
 				"    \"aarch64-darwin\" = {\n" +
 				"      url = \"https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep-14.1.0-arm64-linux.tar.gz\";\n" +
 				"      sha256 = \"sha256-YYYY\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f \\( -name rg \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"  };\n" +
@@ -166,7 +166,7 @@ func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many
 				"    \"aarch64-darwin\" = {\n" +
 				"      url = \"https://github.com/hashicorp/terraform/releases/download/v1.9.0/terraform_1.9.0_darwin_arm64.zip\";\n" +
 				"      sha256 = \"sha256-ZZZZ\";\n" +
-				"      extract = ''unzip -o $src -d $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && unzip -o $src -d $tmpdir && find $tmpdir -type f \\( -name terraform \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = true;\n" +
 				"    };\n" +
 				"  };\n" +
@@ -221,7 +221,7 @@ func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many
 				"    \"aarch64-darwin\" = {\n" +
 				"      url = \"https://github.com/cli/cli/releases/download/v2.87.0/gh_2.87.0_macOS_arm64.tar.gz\";\n" +
 				"      sha256 = \"sha256-XXXX\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f \\( -name gh -o -name gh-auth -o -name gh-repo \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"  };\n" +
@@ -276,7 +276,7 @@ func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many
 				"    \"aarch64-darwin\" = {\n" +
 				"      url = \"https://go.dev/dl/go1.26.0.darwin-arm64.tar.gz\";\n" +
 				"      sha256 = \"sha256-GOLANG\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f \\( -name go -o -name gofmt \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"  };\n" +
@@ -383,7 +383,7 @@ func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many
 				"    \"aarch64-darwin\" = {\n" +
 				"      url = \"https://github.com/yyoshiki41/xo/releases/download/v0.1.1/xo-0.1.1-darwin-arm64.tar.bz2\";\n" +
 				"      sha256 = \"sha256-TARBZ2\";\n" +
-				"      extract = ''tar -xjf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xjf $src -C $tmpdir && find $tmpdir -type f \\( -name xo \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"  };\n" +
@@ -437,7 +437,7 @@ func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many
 				"    \"aarch64-darwin\" = {\n" +
 				"      url = \"https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-darwin-arm64.tar.gz\";\n" +
 				"      sha256 = \"sha256-BINMAP\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f \\( -name ls-lint-darwin-arm64 \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"  };\n" +
@@ -493,7 +493,7 @@ func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many
 				"    \"aarch64-darwin\" = {\n" +
 				"      url = \"https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-darwin-arm64.tar.gz\";\n" +
 				"      sha256 = \"sha256-PLAINTAR\";\n" +
-				"      extract = ''tar -xf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xf $src -C $tmpdir && find $tmpdir -type f \\( -name ls-lint-darwin-arm64 \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"  };\n" +
@@ -548,7 +548,7 @@ func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many
 				"    \"aarch64-darwin\" = {\n" +
 				"      url = \"https://github.com/golangci/golangci-lint/releases/download/v2.11.4/golangci-lint-2.11.4-darwin-arm64.tar.gz\";\n" +
 				"      sha256 = \"sha256-STRIP\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin --strip-components=1'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir --strip-components=1 && find $tmpdir -type f \\( -name golangci-lint \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"  };\n" +
@@ -601,25 +601,25 @@ func TestGenerate(t *testing.T) { //nolint:funlen // table-driven test with many
 				"    \"x86_64-darwin\" = {\n" +
 				"      url = \"https://example.com/fzf-darwin-amd64.tar.gz\";\n" +
 				"      sha256 = \"sha256-D2\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f \\( -name fzf \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"    \"aarch64-darwin\" = {\n" +
 				"      url = \"https://example.com/fzf-darwin-arm64.tar.gz\";\n" +
 				"      sha256 = \"sha256-D1\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f \\( -name fzf \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"    \"x86_64-linux\" = {\n" +
 				"      url = \"https://example.com/fzf-linux-amd64.tar.gz\";\n" +
 				"      sha256 = \"sha256-L2\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f \\( -name fzf \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"    \"aarch64-linux\" = {\n" +
 				"      url = \"https://example.com/fzf-linux-arm64.tar.gz\";\n" +
 				"      sha256 = \"sha256-L1\";\n" +
-				"      extract = ''tar -xzf $src -C $out/bin'';\n" +
+				"      extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f \\( -name fzf \\) -exec cp {} $out/bin/ \\;'';\n" +
 				"      needsUnzip = false;\n" +
 				"    };\n" +
 				"  };\n" +
@@ -781,7 +781,7 @@ func TestGenerate_outputStructure(t *testing.T) { //nolint:funlen // structure v
 	}
 
 	// Verify the extract command is present in the sources.
-	if !strings.Contains(output, "extract = ''tar -xzf $src -C $out/bin''") {
+	if !strings.Contains(output, "extract = ''tmpdir=$(mktemp -d) && tar -xzf $src -C $tmpdir && find $tmpdir -type f") {
 		t.Error("output does not contain tar extract command in sources")
 	}
 

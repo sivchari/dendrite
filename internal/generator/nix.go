@@ -137,39 +137,50 @@ func detectFormat(url, formatOverride string) assetFormat {
 }
 
 // tarCommand returns the appropriate tar command based on the format override or URL extension.
-func tarCommand(url, formatOverride string, stripComponents int) string {
+// It extracts to a temporary directory and copies only the specified binaries to $out/bin.
+func tarCommand(url, formatOverride string, stripComponents int, bins []string) string {
 	key := formatOverride
 	if key == "" {
 		key = url
 	}
 
-	var base string
+	var flag string
 
 	switch {
 	case key == "tar":
-		base = "tar -xf $src -C $out/bin"
+		flag = "-xf"
 	case key == "tar.bz2" || strings.HasSuffix(key, ".tar.bz2"):
-		base = "tar -xjf $src -C $out/bin"
+		flag = "-xjf"
 	case key == "tar.xz" || strings.HasSuffix(key, ".tar.xz"):
-		base = "tar -xJf $src -C $out/bin"
+		flag = "-xJf"
 	default:
-		base = "tar -xzf $src -C $out/bin"
+		flag = "-xzf"
 	}
+
+	cmd := fmt.Sprintf("tmpdir=$(mktemp -d) && tar %s $src -C $tmpdir", flag)
 
 	if stripComponents > 0 {
-		base += fmt.Sprintf(" --strip-components=%d", stripComponents)
+		cmd += fmt.Sprintf(" --strip-components=%d", stripComponents)
 	}
 
-	return base
+	cmd += " && find $tmpdir -type f \\( "
+
+	for i, bin := range bins {
+		if i > 0 {
+			cmd += " -o "
+		}
+
+		cmd += "-name " + bin
+	}
+
+	cmd += " \\) -exec cp {} $out/bin/ \\;"
+
+	return cmd
 }
 
-// zipCommand returns the unzip command. When strip_components > 0,
-// it extracts to a temp dir then copies only the bins to $out/bin.
-func zipCommand(bins []string, stripComponents int) string {
-	if stripComponents == 0 {
-		return "unzip -o $src -d $out/bin"
-	}
-
+// zipCommand returns the unzip command.
+// It extracts to a temporary directory and copies only the specified binaries to $out/bin.
+func zipCommand(bins []string) string {
 	cmd := "tmpdir=$(mktemp -d) && unzip -o $src -d $tmpdir && find $tmpdir -type f \\( "
 
 	for i, bin := range bins {
@@ -187,13 +198,23 @@ func zipCommand(bins []string, stripComponents int) string {
 
 // extractCommand determines the extract command for a given URL and tool configuration.
 func extractCommand(url string, tool *config.Tool, bins []string) string {
+	// Resolve archive-side filenames (pre-rename) via BinMap.
+	archiveNames := make([]string, len(bins))
+	for i, bin := range bins {
+		if src, ok := tool.BinMap[bin]; ok {
+			archiveNames[i] = src
+		} else {
+			archiveNames[i] = bin
+		}
+	}
+
 	format := detectFormat(url, tool.Format)
 
 	switch format {
 	case formatTar:
-		return tarCommand(url, tool.Format, tool.StripComponents)
+		return tarCommand(url, tool.Format, tool.StripComponents, archiveNames)
 	case formatZip:
-		return zipCommand(bins, tool.StripComponents)
+		return zipCommand(archiveNames)
 	case formatRaw:
 		if len(bins) == 1 {
 			return "cp $src $out/bin/" + bins[0]
@@ -202,7 +223,7 @@ func extractCommand(url string, tool *config.Tool, bins []string) string {
 		return "cp $src $out/bin/" + tool.Repo
 	}
 
-	return tarCommand(url, tool.Format, tool.StripComponents)
+	return tarCommand(url, tool.Format, tool.StripComponents, archiveNames)
 }
 
 // Generate renders a multi-platform default.nix file for the given input.
