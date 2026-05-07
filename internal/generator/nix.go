@@ -200,6 +200,7 @@ func zipCommand(bins []string) string {
 func extractCommand(url string, tool *config.Tool, bins []string) string {
 	// Resolve archive-side filenames (pre-rename) via BinMap.
 	archiveNames := make([]string, len(bins))
+
 	for i, bin := range bins {
 		if src, ok := tool.BinMap[bin]; ok {
 			archiveNames[i] = src
