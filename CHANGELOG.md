@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.5.1](https://github.com/sivchari/dendrite/compare/v0.5.0...v0.5.1) - 2026-06-10
+- build: add nix flake by @ryoppippi in https://github.com/sivchari/dendrite/pull/27
+- feat: generates default.nix for all platform by @ryoppippi in https://github.com/sivchari/dendrite/pull/28
+
 ## [v0.5.0](https://github.com/sivchari/dendrite/compare/v0.4.0...v0.5.0) - 2026-05-07
 - fix: extract only specified bins from tar/zip archives by @sivchari in https://github.com/sivchari/dendrite/pull/24
 - release v0.5.0 by @sivchari in https://github.com/sivchari/dendrite/pull/26
