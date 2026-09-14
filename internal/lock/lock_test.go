@@ -1,9 +1,16 @@
 package lock
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/sivchari/dendrite/internal/platform"
@@ -228,4 +235,196 @@ func TestPrefetchURL(t *testing.T) {
 	// If nix-prefetch-url is available, test with an empty / known URL
 	// is impractical (network-dependent). Skip in unit tests.
 	t.Skip("skipping PrefetchURL test: requires network access")
+}
+
+func TestToken(t *testing.T) {
+	tests := []struct {
+		name      string
+		githubTok string
+		ghTok     string
+		wantToken string
+		wantErr   bool
+		errSubstr string
+	}{
+		{
+			name:      "GITHUB_TOKEN set",
+			githubTok: "gh-token-1",
+			wantToken: "gh-token-1",
+		},
+		{
+			name:      "falls back to GH_TOKEN",
+			ghTok:     "gh-token-2",
+			wantToken: "gh-token-2",
+		},
+		{
+			name:      "GITHUB_TOKEN takes precedence",
+			githubTok: "gh-token-1",
+			ghTok:     "gh-token-2",
+			wantToken: "gh-token-1",
+		},
+		{
+			name:      "neither set",
+			wantErr:   true,
+			errSubstr: "GITHUB_TOKEN or GH_TOKEN",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("GITHUB_TOKEN", tt.githubTok)
+			t.Setenv("GH_TOKEN", tt.ghTok)
+
+			got, err := Token()
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+
+				if !strings.Contains(err.Error(), tt.errSubstr) {
+					t.Errorf("error %q does not contain %q", err.Error(), tt.errSubstr)
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if got != tt.wantToken {
+				t.Errorf("Token() = %q, want %q", got, tt.wantToken)
+			}
+		})
+	}
+}
+
+func TestPrivateAssetURL(t *testing.T) {
+	t.Parallel()
+
+	got := PrivateAssetURL("LayerXcom", "layerone", 12345)
+	want := "https://api.github.com/repos/LayerXcom/layerone/releases/assets/12345"
+
+	if got != want {
+		t.Errorf("PrivateAssetURL() = %q, want %q", got, want)
+	}
+}
+
+// newPrivateReleaseServer returns an httptest.Server that emulates the two
+// GitHub API endpoints fetchPrivateAsset depends on: fetching a release by
+// tag, and downloading an asset's raw content by ID.
+func newPrivateReleaseServer(t *testing.T, wantTagPathSegment string, assetContent []byte) *httptest.Server {
+	t.Helper()
+
+	const (
+		owner    = "LayerXcom"
+		repo     = "layerone"
+		assetID  = int64(999)
+		assetKey = "haro_0.3.1_darwin_arm64.tar.gz"
+	)
+
+	releasePath := "/repos/" + owner + "/" + repo + "/releases/tags/" + wantTagPathSegment
+	assetPath := "/repos/" + owner + "/" + repo + "/releases/assets/" + "999"
+
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+
+			return
+		}
+
+		switch {
+		case r.Method == http.MethodGet && r.URL.EscapedPath() == releasePath:
+			w.Header().Set("Content-Type", "application/json")
+
+			_ = json.NewEncoder(w).Encode(githubRelease{
+				Assets: []githubReleaseAsset{
+					{ID: assetID, Name: assetKey},
+				},
+			})
+		case r.Method == http.MethodGet && r.URL.EscapedPath() == assetPath:
+			if r.Header.Get("Accept") != "application/octet-stream" {
+				w.WriteHeader(http.StatusBadRequest)
+
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(assetContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+}
+
+func TestFetchPrivateAsset(t *testing.T) {
+	t.Parallel()
+
+	content := []byte("fake release archive bytes")
+	srv := newPrivateReleaseServer(t, "haro-cli%2Fv0.3.1", content)
+
+	t.Cleanup(srv.Close)
+
+	assetID, sha, err := fetchPrivateAsset(
+		context.Background(),
+		srv.Client(),
+		srv.URL,
+		"LayerXcom",
+		"layerone",
+		"haro-cli/v0.3.1",
+		"haro_0.3.1_darwin_arm64.tar.gz",
+		"test-token",
+	)
+	if err != nil {
+		t.Fatalf("fetchPrivateAsset() unexpected error: %v", err)
+	}
+
+	if assetID != 999 {
+		t.Errorf("assetID = %d, want 999", assetID)
+	}
+
+	sum := sha256.Sum256(content)
+	want := "sha256-" + base64.StdEncoding.EncodeToString(sum[:])
+
+	if sha != want {
+		t.Errorf("sha = %q, want %q", sha, want)
+	}
+}
+
+func TestFetchPrivateAsset_assetNotFound(t *testing.T) {
+	t.Parallel()
+
+	srv := newPrivateReleaseServer(t, "v1.0.0", []byte("unused"))
+
+	t.Cleanup(srv.Close)
+
+	_, _, err := fetchPrivateAsset(
+		context.Background(),
+		srv.Client(),
+		srv.URL,
+		"LayerXcom",
+		"layerone",
+		"v1.0.0",
+		"nonexistent-asset.tar.gz",
+		"test-token",
+	)
+	if err == nil {
+		t.Fatal("expected error for missing asset, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "not found in release") {
+		t.Errorf("error %q does not mention missing asset", err.Error())
+	}
+}
+
+func TestHashSRI(t *testing.T) {
+	t.Parallel()
+
+	data := []byte("hello world")
+	sum := sha256.Sum256(data)
+	want := "sha256-" + base64.StdEncoding.EncodeToString(sum[:])
+
+	if got := hashSRI(data); got != want {
+		t.Errorf("hashSRI() = %q, want %q", got, want)
+	}
 }

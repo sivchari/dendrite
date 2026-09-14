@@ -83,6 +83,7 @@ tools:
     bins:                              # optional (defaults to [repo name])
       - <binary_name>
     version_prefix: "v"                # optional (default: "v", set to "go" for golang/go, "" for no prefix)
+    private: true                      # optional (default: false); requires asset, see "Private repositories"
 ```
 
 `asset` and `url` can be either a single pattern or a platform map.
@@ -110,6 +111,32 @@ tools:
     bins:
       - gcloud
 ```
+
+### Private repositories
+
+Set `private: true` on a tool to fetch its release assets from a private GitHub repository. The version/tag may contain a `/` (e.g. a tag like `haro-cli/v0.3.1` used to disambiguate releases across multiple tools in one repository); dendrite handles this for name parsing, asset resolution, and the generated Nix version.
+
+```yaml
+tools:
+  - name: LayerXcom/layerone@haro-cli/v0.3.1
+    private: true
+    asset:
+      darwin/arm64: haro_0.3.1_darwin_arm64.tar.gz
+      linux/amd64: haro_0.3.1_linux_amd64.tar.gz
+    bins:
+      - haro
+```
+
+`private` requires `asset` (not `url`).
+
+`dendrite lock` needs a GitHub API token to resolve and download private assets. Set `GITHUB_TOKEN` (or `GH_TOKEN` as a fallback):
+
+```bash
+export GITHUB_TOKEN=$(gh auth token)
+dendrite lock -f dendrite.yaml
+```
+
+The generated derivation for a private tool downloads its asset from the authenticated GitHub API (`.../releases/assets/{id}`) using nixpkgs `fetchurl`'s `netrcPhase`, which reads `GITHUB_TOKEN`/`GH_TOKEN` from the build environment at build time. No `nix.conf` or netrc file setup is required — just make sure the same environment variable is exported when running `nix build`.
 
 ### Custom version prefix
 

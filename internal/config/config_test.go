@@ -466,6 +466,70 @@ tools:
 	}
 }
 
+func TestParseBytes_privateTool(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := ParseBytes([]byte(`
+tools:
+  - name: LayerXcom/layerone@haro-cli/v0.3.1
+    private: true
+    asset:
+      darwin/arm64: haro_0.3.1_darwin_arm64.tar.gz
+      linux/amd64: haro_0.3.1_linux_amd64.tar.gz
+    bins:
+      - haro
+`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	tool := cfg.Tools[0]
+	assertEqual(t, "Owner", "LayerXcom", tool.Owner)
+	assertEqual(t, "Repo", "layerone", tool.Repo)
+	assertEqual(t, "Version", "haro-cli/v0.3.1", tool.Version)
+
+	if !tool.Private {
+		t.Error("expected Private to be true")
+	}
+}
+
+func TestParseBytes_privateDefaultsToFalse(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := ParseBytes([]byte(`
+tools:
+  - name: cli/cli@v2.87.0
+    asset:
+      darwin/arm64: gh_{version}.tar.gz
+`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.Tools[0].Private {
+		t.Error("expected Private to be false by default")
+	}
+}
+
+func TestParseBytes_privateToolWithURLIsInvalid(t *testing.T) {
+	t.Parallel()
+
+	_, err := ParseBytes([]byte(`
+tools:
+  - name: LayerXcom/layerone@v0.3.1
+    private: true
+    url:
+      darwin/arm64: https://example.com/haro.tar.gz
+`))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if !containsSubstring(err.Error(), "private tools must use asset, not url") {
+		t.Errorf("error %q does not contain %q", err.Error(), "private tools must use asset, not url")
+	}
+}
+
 func TestParse(t *testing.T) { //nolint:funlen // comprehensive file-based test
 	t.Parallel()
 
@@ -645,6 +709,7 @@ func TestNamePattern(t *testing.T) {
 		{"aquaproj/aqua@v2.39.0", true, "aquaproj", "aqua", "v2.39.0"},
 		{"hashicorp/terraform@v1.9.0", true, "hashicorp", "terraform", "v1.9.0"},
 		{"a/b@c", true, "a", "b", "c"},
+		{"LayerXcom/layerone@haro-cli/v0.3.1", true, "LayerXcom", "layerone", "haro-cli/v0.3.1"},
 		{"noversion/repo", false, "", "", ""},
 		{"noowner@v1.0.0", false, "", "", ""},
 		{"", false, "", "", ""},

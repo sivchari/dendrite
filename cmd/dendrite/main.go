@@ -2,8 +2,11 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -194,19 +197,18 @@ func runLock(args []string) error {
 
 // executeLock performs the lock flow: for each tool and platform, resolve asset URLs,
 // prefetch SHA256 hashes, and write the lock file.
-func executeLock(cfg *config.Config, lockPath string, platforms []platform.Platform) error { //nolint:funlen // sequential CLI logic
-	// Read existing lock file if it exists.
-	var existing *lock.File
-
-	if _, statErr := os.Stat(lockPath); statErr == nil {
-		var readErr error
-
-		existing, readErr = lock.Read(lockPath)
-		if readErr != nil {
-			return fmt.Errorf("failed to read existing lock file: %w", readErr)
-		}
+func executeLock(cfg *config.Config, lockPath string, platforms []platform.Platform) error {
+	existing, err := readExistingLock(lockPath)
+	if err != nil {
+		return err
 	}
 
+	token, err := privateToken(cfg)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
 	lf := &lock.File{}
 
 	for i := range cfg.Tools {
@@ -219,49 +221,17 @@ func executeLock(cfg *config.Config, lockPath string, platforms []platform.Platf
 		for j := range platforms {
 			pKey := lock.PlatformKey(platforms[j])
 			platformStr := platforms[j].OS + "/" + platforms[j].Arch
-			candidates := resolveCandidates(&cfg.Tools[i], platforms[j])
 
-			if len(candidates) == 0 {
+			assetLock, ok, lockErr := lockToolPlatform(ctx, existing, &cfg.Tools[i], name, pKey, platformStr, platforms[j], token)
+			if lockErr != nil {
+				return fmt.Errorf("failed to lock %s for %s: %w", name, platformStr, lockErr)
+			}
+
+			if !ok {
 				continue
 			}
 
-			// Check existing lock file for unchanged entries.
-			if existing != nil {
-				if entry := lock.Lookup(existing, name, pKey); entry != nil {
-					fmt.Fprintf(os.Stderr, "reusing existing lock for %s on %s\n", name, platformStr)
-
-					tl.Assets[pKey] = lock.AssetLock{
-						URL:    entry.URL,
-						SHA256: entry.SHA256,
-					}
-
-					continue
-				}
-			}
-
-			fmt.Fprintf(os.Stderr, "locking %s for %s...\n", name, platformStr)
-
-			var locked bool
-
-			for _, url := range candidates {
-				sha256, prefetchErr := lock.PrefetchURL(url)
-				if prefetchErr != nil {
-					continue
-				}
-
-				tl.Assets[pKey] = lock.AssetLock{
-					URL:    url,
-					SHA256: sha256,
-				}
-
-				locked = true
-
-				break
-			}
-
-			if !locked {
-				return fmt.Errorf("failed to lock %s for %s: none of the candidate URLs succeeded", name, platformStr)
-			}
+			tl.Assets[pKey] = assetLock
 		}
 
 		lf.Tools = append(lf.Tools, tl)
@@ -274,6 +244,79 @@ func executeLock(cfg *config.Config, lockPath string, platforms []platform.Platf
 	fmt.Fprintf(os.Stderr, "lock file written to %s\n", lockPath)
 
 	return nil
+}
+
+// readExistingLock reads the lock file at lockPath if it exists, returning an
+// empty (non-nil) *lock.File when no lock file has been written yet, so
+// callers can look up entries unconditionally.
+func readExistingLock(lockPath string) (*lock.File, error) {
+	existing, err := lock.Read(lockPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return &lock.File{}, nil
+		}
+
+		return nil, fmt.Errorf("failed to read existing lock file: %w", err)
+	}
+
+	return existing, nil
+}
+
+// lockToolPlatform resolves the AssetLock for a single (tool, platform) pair:
+// it reuses an existing lock entry when present, and otherwise locks via the
+// private GitHub API flow or the public nix-prefetch-url flow. ok is false
+// when the tool declares no asset for this platform, meaning it should be
+// skipped without error.
+func lockToolPlatform(
+	ctx context.Context,
+	existing *lock.File,
+	tool *config.Tool,
+	name, pKey, platformStr string,
+	p platform.Platform,
+	token string,
+) (lock.AssetLock, bool, error) {
+	if entry := lock.Lookup(existing, name, pKey); entry != nil {
+		fmt.Fprintf(os.Stderr, "reusing existing lock for %s on %s\n", name, platformStr)
+
+		return *entry, true, nil
+	}
+
+	if tool.Private {
+		assetLock, ok, err := lockPrivateAsset(ctx, tool, p, token)
+		if !ok || err != nil {
+			return lock.AssetLock{}, false, err
+		}
+
+		fmt.Fprintf(os.Stderr, "locking %s for %s...\n", name, platformStr)
+
+		return assetLock, true, nil
+	}
+
+	return lockPublicAsset(tool, name, platformStr, p)
+}
+
+// lockPublicAsset resolves and prefetches the SHA256 hash for a public tool's
+// release asset on a single platform, trying each candidate URL in order
+// until one succeeds. ok is false when the tool declares no asset pattern
+// for this platform.
+func lockPublicAsset(tool *config.Tool, name, platformStr string, p platform.Platform) (lock.AssetLock, bool, error) {
+	candidates := resolveCandidates(tool, p)
+	if len(candidates) == 0 {
+		return lock.AssetLock{}, false, nil
+	}
+
+	fmt.Fprintf(os.Stderr, "locking %s for %s...\n", name, platformStr)
+
+	for _, url := range candidates {
+		sha256, err := lock.PrefetchURL(url)
+		if err != nil {
+			continue
+		}
+
+		return lock.AssetLock{URL: url, SHA256: sha256}, true, nil
+	}
+
+	return lock.AssetLock{}, false, errors.New("none of the candidate URLs succeeded")
 }
 
 // resolveCandidates returns the candidate URL for a tool on a given platform.
@@ -297,4 +340,47 @@ func resolveCandidates(tool *config.Tool, p platform.Platform) []string {
 	}
 
 	return candidates
+}
+
+// privateToken resolves a GitHub API token if the config declares at least
+// one private tool. It returns an empty string (and no error) when no tool
+// is private, since no token is needed in that case.
+func privateToken(cfg *config.Config) (string, error) {
+	for i := range cfg.Tools {
+		if cfg.Tools[i].Private {
+			token, err := lock.Token()
+			if err != nil {
+				return "", fmt.Errorf("failed to resolve private token: %w", err)
+			}
+
+			return token, nil
+		}
+	}
+
+	return "", nil
+}
+
+// lockPrivateAsset resolves and downloads a private tool's release asset for
+// a single platform. The second return value is false when the tool declares
+// no asset pattern for that platform, meaning it should be skipped.
+func lockPrivateAsset(ctx context.Context, tool *config.Tool, p platform.Platform, token string) (lock.AssetLock, bool, error) {
+	platformKey := p.OS + "/" + p.Arch
+
+	pattern, ok := tool.Asset[platformKey]
+	if !ok {
+		return lock.AssetLock{}, false, nil
+	}
+
+	assetName := platform.Resolve(pattern, tool.Version, tool.VersionPrefix)
+
+	assetID, sha256, err := lock.FetchPrivateAsset(ctx, http.DefaultClient, tool.Owner, tool.Repo, tool.Version, assetName, token)
+	if err != nil {
+		return lock.AssetLock{}, false, fmt.Errorf("failed to fetch private asset %s: %w", assetName, err)
+	}
+
+	return lock.AssetLock{
+		URL:     lock.PrivateAssetURL(tool.Owner, tool.Repo, assetID),
+		SHA256:  sha256,
+		AssetID: assetID,
+	}, true, nil
 }

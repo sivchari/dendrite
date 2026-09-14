@@ -40,12 +40,24 @@ func NixSystem(platformKey string) string {
 	return nixSystemMap[platformKey]
 }
 
-// Resolve expands an asset pattern by substituting the {version} placeholder.
-// The version string has the given prefix stripped before substitution.
+// Resolve expands an asset pattern by substituting the {version} placeholder
+// with SanitizedVersion(version, prefix).
 func Resolve(pattern, version, prefix string) string {
-	ver := strings.TrimPrefix(version, prefix)
+	return strings.ReplaceAll(pattern, "{version}", SanitizedVersion(version, prefix))
+}
 
-	return strings.ReplaceAll(pattern, "{version}", ver)
+// SanitizedVersion reduces a release version/tag to a token safe for
+// embedding in asset filenames, URLs, and Nix store paths. Tags that embed a
+// path (e.g. "haro-cli/v0.3.1", used to disambiguate releases across
+// multiple tools in one repository) are first reduced to their last path
+// segment, since "/" is not valid in those contexts; the given prefix is
+// then stripped from the result.
+func SanitizedVersion(version, prefix string) string {
+	if idx := strings.LastIndex(version, "/"); idx != -1 {
+		version = version[idx+1:]
+	}
+
+	return strings.TrimPrefix(version, prefix)
 }
 
 // ResolveCandidates expands a pattern for a platform using common release asset

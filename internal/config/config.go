@@ -77,6 +77,10 @@ type Tool struct {
 	Format string `yaml:"format"`
 	// StripComponents removes leading directory components when extracting tar/zip archives.
 	StripComponents int `yaml:"strip_components"`
+	// Private marks the tool's GitHub repository as private. When set, dendrite
+	// authenticates against the GitHub API using GITHUB_TOKEN (or GH_TOKEN) to
+	// resolve and download release assets. Requires Asset; mutually exclusive with URL.
+	Private bool `yaml:"private"`
 
 	// name is the raw "owner/repo@version" string from the YAML.
 	name string
@@ -94,6 +98,7 @@ type rawTool struct {
 	BinMap          map[string]string `yaml:"bin_map"`
 	Format          string            `yaml:"format"`
 	StripComponents int               `yaml:"strip_components"`
+	Private         bool              `yaml:"private"`
 }
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface for Tool.
@@ -120,6 +125,7 @@ func (t *Tool) UnmarshalYAML(value *yaml.Node) error {
 	t.BinMap = raw.BinMap
 	t.Format = raw.Format
 	t.StripComponents = raw.StripComponents
+	t.Private = raw.Private
 
 	if raw.VersionPrefix != nil {
 		t.VersionPrefix = *raw.VersionPrefix
@@ -217,6 +223,10 @@ func validateTool(t *Tool, index int) error {
 
 	if hasAsset && hasURL {
 		errs = append(errs, fmt.Errorf("tools[%d]: asset and url are mutually exclusive", index))
+	}
+
+	if t.Private && hasURL {
+		errs = append(errs, fmt.Errorf("tools[%d]: private tools must use asset, not url", index))
 	}
 
 	// Validate that asset keys match the "os/arch" pattern.

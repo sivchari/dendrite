@@ -63,6 +63,13 @@ func TestResolve(t *testing.T) { //nolint:funlen // table-driven test
 			prefix:  "v",
 			want:    "https://example.com/tool/1.5.0/tool-1.5.0-linux-amd64.tar.gz",
 		},
+		{
+			name:    "slash in tag uses last path segment",
+			pattern: "haro_{version}_darwin_arm64.tar.gz",
+			version: "haro-cli/v0.3.1",
+			prefix:  "v",
+			want:    "haro_0.3.1_darwin_arm64.tar.gz",
+		},
 	}
 
 	for _, tt := range tests {
@@ -73,6 +80,35 @@ func TestResolve(t *testing.T) { //nolint:funlen // table-driven test
 
 			if got != tt.want {
 				t.Errorf("Resolve() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSanitizedVersion(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		version string
+		prefix  string
+		want    string
+	}{
+		{"strips v prefix", "v2.87.0", "v", "2.87.0"},
+		{"no prefix match unchanged", "14.1.0", "v", "14.1.0"},
+		{"slash in tag", "haro-cli/v0.3.1", "v", "0.3.1"},
+		{"slash in tag without prefix match", "haro-cli/0.3.1", "v", "0.3.1"},
+		{"multiple slashes uses last segment", "team/haro-cli/v0.3.1", "v", "0.3.1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := SanitizedVersion(tt.version, tt.prefix)
+
+			if got != tt.want {
+				t.Errorf("SanitizedVersion(%q, %q) = %q, want %q", tt.version, tt.prefix, got, tt.want)
 			}
 		})
 	}
