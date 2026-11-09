@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.6.1](https://github.com/sivchari/dendrite/compare/v0.6.0...v0.6.1) - 2026-11-09
+- ci: switch read-only checks from pull_request_target to pull_request by @sivchari in https://github.com/sivchari/dendrite/pull/31
+
 ## [v0.6.0](https://github.com/sivchari/dendrite/compare/v0.5.0...v0.6.0) - 2026-09-14
 - build: add nix flake by @ryoppippi in https://github.com/sivchari/dendrite/pull/27
 - feat: generates default.nix for all platform by @ryoppippi in https://github.com/sivchari/dendrite/pull/28
